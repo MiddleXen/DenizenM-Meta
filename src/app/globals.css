@@ -120,6 +120,23 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Hardware-accelerated static noise texture (zero CPU cost, zero lag) */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("/noise.png");
+    background-repeat: repeat;
+    background-size: 128px 128px;
+    pointer-events: none;
+    opacity: 0.035;
+    z-index: 9999;
+  }
+
+  :root:not(.dark) body::after {
+    opacity: 0.018;
+  }
+
   a {
     color: var(--link-color);
     text-decoration: none;
