@@ -227,15 +227,15 @@ export interface CommandAsyncInfo {
 }
 
 function makeSafeBadge(text: string): string {
-  return `<span class="badge-async-safe inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"><span class="badge-async-icon">⚡</span><span class="badge-async-text">${text}</span></span>`;
+  return `<span class="badge-async-safe inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"><span class="badge-async-text">${text}</span></span>`;
 }
 
 function makeDeferBadge(text: string): string {
-  return `<span class="badge-async-defer inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30"><span class="badge-async-icon">⚡</span><span class="badge-async-text">${text}</span></span>`;
+  return `<span class="badge-async-defer inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30"><span class="badge-async-text">${text}</span></span>`;
 }
 
 function makeMainBadge(text: string): string {
-  return `<span class="badge-async-main inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10"><span class="badge-async-text">${text}</span></span>`;
+  return `<span class="badge-async-main inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10"><span class="badge-async-text">${text}</span></span>`;
 }
 
 export function getCommandAsyncStatus(commandName: string): CommandAsyncInfo {
@@ -458,7 +458,7 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
       isFullSafe: true,
       isPartial: false,
       safeCount: 999,
-      badgeHtml: makeSafeBadge('100% Async-Safe'),
+      badgeHtml: makeSafeBadge('Full Async-Safe'),
       descriptionText: `Every tag on this object type is completely safe off the main thread. Pure data processing.`,
     };
   }
