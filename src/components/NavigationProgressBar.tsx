@@ -75,7 +75,7 @@ export function NavigationProgressBar() {
       aria-hidden="true"
     >
       <div
-        className="h-full bg-gradient-to-r from-emerald-500 via-[#00bc8c] to-teal-300 dark:from-[#00bc8c] dark:via-emerald-400 dark:to-teal-200 shadow-[0_0_10px_rgba(0,188,140,0.8),0_0_3px_rgba(0,188,140,0.6)]"
+        className="h-full bg-emerald-500 dark:bg-emerald-400"
         style={{
           width: complete ? '100%' : '75%',
           transition: complete

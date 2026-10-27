@@ -566,7 +566,8 @@ export function buildSearchables(obj: BaseMetaObject): SearchableHelpers {
 
 export function getMatchQuality(helpers: SearchableHelpers, query: string): number {
   if (!query) return 0;
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
+  if (!q) return 0;
 
   const check = (list: string[], val: number): number => {
     if (list.includes(q)) return val;
@@ -588,6 +589,49 @@ export function getMatchQuality(helpers: SearchableHelpers, query: string): numb
 
   score = check(helpers.backups, 2);
   if (score > 0) return score;
+
+  // Multi-word token search (e.g. "item containers" matches "item script containers")
+  const words = q.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    const checkAllWordsInSingleString = (list: string[], val: number): number => {
+      if (list.some((s) => {
+        const low = s.toLowerCase();
+        return words.every((w) => low.includes(w));
+      })) {
+        return val;
+      }
+      return 0;
+    };
+
+    // If all words are present in perfectMatches (e.g. name / cleanName)
+    score = checkAllWordsInSingleString(helpers.perfectMatches, 9);
+    if (score > 0) return score;
+
+    // If all words are present in synonyms
+    score = checkAllWordsInSingleString(helpers.synonyms, 7);
+    if (score > 0) return score;
+
+    // If all words are present in strongs
+    score = checkAllWordsInSingleString(helpers.strongs, 5);
+    if (score > 0) return score;
+
+    // If words match across combined metadata (name, synonyms, description)
+    const combined = [
+      ...helpers.perfectMatches,
+      ...helpers.synonyms,
+      ...helpers.strongs,
+      ...helpers.decents,
+    ].join(' ').toLowerCase();
+
+    if (words.every((w) => combined.includes(w))) {
+      // If at least one word matches the title/cleanName directly
+      const hasTitleWord = helpers.perfectMatches.some((s) => {
+        const low = s.toLowerCase();
+        return words.some((w) => low.includes(w));
+      });
+      return hasTitleWord ? 7 : 4;
+    }
+  }
 
   return 0;
 }

@@ -35,3 +35,8 @@ next-env.d.ts
 # meta cache / download cache
 /cache
 /.cache
+
+# next 16 agent rules
+AGENTS.md
+CLAUDE.md
+

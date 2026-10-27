@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Search, X } from 'lucide-react';
 import { useSearchContext } from './SearchContext';
 import { SearchAutocomplete } from './SearchAutocomplete';
 
@@ -11,12 +12,25 @@ interface DocSearchBarProps {
   initialValue?: string | null;
 }
 
+const getCategoryFromPath = (path: string): string | undefined => {
+  if (path.includes('/Docs/Commands')) return 'Command';
+  if (path.includes('/Docs/Tags')) return 'Tag';
+  if (path.includes('/Docs/Events')) return 'Event';
+  if (path.includes('/Docs/Mechanisms')) return 'Mechanism';
+  if (path.includes('/Docs/ObjectTypes')) return 'ObjectType';
+  if (path.includes('/Docs/Languages')) return 'Language';
+  if (path.includes('/Docs/Actions')) return 'Action';
+  return undefined;
+};
+
 export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchBarProps) {
   const router = useRouter();
   const { searchValue, setSearchValue } = useSearchContext();
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const categoryFilter = getCategoryFromPath(basePath);
 
   useEffect(() => {
     if (initialValue) {
@@ -57,45 +71,48 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
     }
   };
 
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const responsivePlaceholder = isMobile
-    ? placeholder === 'Search all meta documentation...'
-      ? 'Search meta...'
-      : placeholder === 'Search Language Explanations...'
-      ? 'Search languages...'
-      : placeholder
-    : placeholder;
-
   return (
-    <div ref={containerRef} className="relative z-50 w-full max-w-[600px] mx-auto text-left px-3 sm:px-0 box-border">
-      <input
-        type="text"
-        id="search_bar"
-        placeholder={responsivePlaceholder}
-        value={searchValue}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        onChange={(e) => {
-          setSearchValue(e.target.value);
-          setIsOpen(true);
-          setActiveIndex(-1);
-        }}
-        onFocus={() => {
-          if (searchValue.trim()) setIsOpen(true);
-        }}
-        onKeyDown={handleKeyDown}
-        className="w-full block"
-      />
+    <div ref={containerRef} className="relative z-50 w-full max-w-xl mx-auto text-left px-3 sm:px-0">
+      <div className="relative flex items-center w-full rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-200 focus-within:border-emerald-500/60 focus-within:ring-4 focus-within:ring-emerald-500/10">
+        <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          type="text"
+          id="search_bar"
+          placeholder={placeholder}
+          value={searchValue}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          onChange={(e) => {
+            setSearchValue(e.target.value);
+            setIsOpen(true);
+            setActiveIndex(-1);
+          }}
+          onFocus={() => {
+            if (searchValue.trim()) setIsOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          style={{ paddingLeft: '2.85rem', paddingRight: '2.5rem' }}
+          className="w-full py-2.5 sm:py-3 rounded-xl bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none"
+        />
+        {searchValue && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchValue('');
+              setIsOpen(false);
+              router.push(basePath);
+              inputRef.current?.focus();
+            }}
+            className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            aria-label="Clear filter"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
 
       <SearchAutocomplete
         query={searchValue}
@@ -103,6 +120,8 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
         onClose={() => setIsOpen(false)}
         activeIndex={activeIndex}
         setActiveIndex={setActiveIndex}
+        categoryFilter={categoryFilter}
+        basePath={basePath}
       />
     </div>
   );

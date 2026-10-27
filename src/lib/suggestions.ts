@@ -117,6 +117,8 @@ export function filterSuggestions(
     ? list.filter((item) => item.type.toLowerCase() === categoryFilter.toLowerCase())
     : list;
 
+  const words = q.split(/\s+/).filter(Boolean);
+
   const scored: Array<{ item: SearchSuggestion; score: number }> = [];
 
   for (const item of filtered) {
@@ -155,6 +157,20 @@ export function filterSuggestions(
       score = 35;
     } else if (d.includes(q)) {
       score = 25;
+    }
+
+    // Multi-word token matching (e.g. "item containers" matches "Item Script Containers")
+    if (score === 0 && words.length > 1) {
+      const allWordsInClean = words.every((w) => c.includes(w) || untaggedClean.includes(w));
+      const allWordsInName = words.every((w) => n.includes(w) || untaggedName.includes(w));
+      const allCombined = `${c} ${n} ${d} ${(item.keywords || []).join(' ')}`.toLowerCase();
+      const allWordsInItem = words.every((w) => allCombined.includes(w));
+
+      if (allWordsInClean || allWordsInName) {
+        score = 70;
+      } else if (allWordsInItem) {
+        score = 40;
+      }
     }
 
     if (score > 0) {

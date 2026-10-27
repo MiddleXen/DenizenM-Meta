@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, BookOpen, Code, Tag, Zap, Cpu, Sparkles, Terminal } from 'lucide-react';
+import { ArrowRight, BookOpen, Code, Tag, Zap, Cpu, Terminal, FileCode } from 'lucide-react';
 import { SearchSuggestion, filterSuggestions } from '@/lib/suggestions';
 
 interface SearchAutocompleteProps {
@@ -14,6 +14,7 @@ interface SearchAutocompleteProps {
   activeIndex: number;
   setActiveIndex: React.Dispatch<React.SetStateAction<number>>;
   categoryFilter?: string;
+  basePath?: string;
   className?: string;
 }
 
@@ -49,6 +50,7 @@ export function SearchAutocomplete({
   activeIndex,
   setActiveIndex,
   categoryFilter,
+  basePath,
   className = '',
 }: SearchAutocompleteProps) {
   const router = useRouter();
@@ -153,7 +155,7 @@ export function SearchAutocomplete({
       default:
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold leading-none bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30">
-            <Sparkles className="w-2.5 h-2.5" />
+            <FileCode className="w-2.5 h-2.5" />
             <span>{type}</span>
           </span>
         );
@@ -163,21 +165,25 @@ export function SearchAutocomplete({
   const highlightMatch = (text: string, q: string) => {
     const cleanQ = q.trim();
     if (!cleanQ) return text;
-    const lower = text.toLowerCase();
-    const idx = lower.indexOf(cleanQ.toLowerCase());
-    if (idx === -1) return text;
+    const words = cleanQ.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return text;
 
-    const before = text.slice(0, idx);
-    const matched = text.slice(idx, idx + cleanQ.length);
-    const after = text.slice(idx + cleanQ.length);
+    const escapedWords = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const regex = new RegExp(`(${escapedWords.join('|')})`, 'gi');
+    const parts = text.split(regex);
 
     return (
       <>
-        {before}
-        <span className="font-bold text-emerald-600 dark:text-emerald-400">
-          {matched}
-        </span>
-        {after}
+        {parts.map((part, i) => {
+          const isMatch = words.some((w) => w.toLowerCase() === part.toLowerCase());
+          return isMatch ? (
+            <span key={i} className="font-bold text-emerald-600 dark:text-emerald-400">
+              {part}
+            </span>
+          ) : (
+            part
+          );
+        })}
       </>
     );
   };
@@ -190,11 +196,11 @@ export function SearchAutocomplete({
 
   return (
     <div
-      className={`search-autocomplete-panel absolute left-0 right-0 w-full max-w-full top-full mt-1.5 rounded-xl bg-white dark:bg-[#1a1d24] backdrop-blur-xl border border-slate-200 dark:border-white/15 shadow-2xl overflow-hidden z-[100] text-left box-border ${className}`}
+      className={`search-autocomplete-panel absolute left-0 right-0 w-full max-w-full top-full mt-2 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden z-[100] text-left box-border ${className}`}
     >
       <div className="px-3.5 py-2 text-[11px] font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider flex items-center justify-between border-b border-slate-200/60 dark:border-white/[0.08] bg-slate-50/80 dark:bg-black/25">
         <div className="flex items-center gap-1.5">
-          <span>Suggestions</span>
+          <span>{categoryFilter ? `${categoryFilter} Suggestions` : 'Suggestions'}</span>
           {matches.length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-[#00bc8c]">
               {matches.length}
@@ -263,7 +269,11 @@ export function SearchAutocomplete({
       {/* Footer link to full search */}
       <div className="p-2 border-t border-slate-200/60 dark:border-white/[0.08] bg-slate-50/80 dark:bg-black/35">
         <Link
-          href={`/Docs/Search/${encodeURIComponent(query.trim())}`}
+          href={
+            categoryFilter && basePath
+              ? `${basePath}/${encodeURIComponent(query.trim())}`
+              : `/Docs/Search/${encodeURIComponent(query.trim())}`
+          }
           onClick={() => {
             onClose();
             if (onSelect) onSelect();
@@ -271,7 +281,9 @@ export function SearchAutocomplete({
           className="w-full px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-white/5 flex items-center justify-between gap-2 transition-colors no-underline hover:no-underline min-w-0"
         >
           <span className="flex items-center gap-1.5 truncate min-w-0 flex-1">
-            <span className="flex-shrink-0">Search all for</span>
+            <span className="flex-shrink-0">
+              {categoryFilter ? `Search in ${categoryFilter}s for` : 'Search all for'}
+            </span>
             <span className="font-bold text-slate-900 dark:text-white truncate">
               &ldquo;{query}&rdquo;
             </span>

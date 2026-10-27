@@ -36,9 +36,9 @@ export function BackToTop() {
     <button
       onClick={scrollToTop}
       aria-label="Back to top"
-      className="fixed bottom-6 right-6 z-40 p-3 rounded-xl bg-slate-900/90 dark:bg-[#282b32]/90 backdrop-blur-md text-slate-200 dark:text-emerald-400 border border-slate-700/60 dark:border-white/15 hover:border-emerald-500/60 shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-1 active:scale-95 transition-all duration-300 cursor-pointer animate-fade-in group"
+      className="fixed bottom-6 right-6 z-40 p-2.5 rounded-lg bg-white/95 dark:bg-[#151921]/95 backdrop-blur-xs text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-sm transition-colors cursor-pointer"
     >
-      <ArrowUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform duration-200" />
+      <ArrowUp className="w-4 h-4" />
     </button>
   );
 }

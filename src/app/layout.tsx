@@ -6,9 +6,8 @@ import { Footer } from '@/components/Footer';
 import { SearchProvider } from '@/components/SearchContext';
 import { BackToTop } from '@/components/BackToTop';
 import { NavigationProgressBar } from '@/components/NavigationProgressBar';
-import { InteractiveBackground } from '@/components/InteractiveBackground';
+import { FlasherInit } from '@/components/FlasherInit';
 import { Suspense } from 'react';
-import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -54,9 +53,7 @@ export default async function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
-      <body className="min-h-screen flex flex-col antialiased selection:bg-emerald-500/20 selection:text-emerald-400 relative">
-        <InteractiveBackground />
-
+      <body className="min-h-screen flex flex-col antialiased selection:bg-emerald-500/20 selection:text-emerald-400">
         <ThemeProvider initialTheme={initialTheme}>
           <Suspense fallback={null}>
             <NavigationProgressBar />
@@ -69,9 +66,8 @@ export default async function RootLayout({
             <Footer />
             <BackToTop />
           </SearchProvider>
+          <FlasherInit />
         </ThemeProvider>
-
-        <Script src="/js/flasher.js" strategy="afterInteractive" />
       </body>
     </html>
   );

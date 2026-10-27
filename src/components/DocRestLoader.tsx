@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { doFlashFor } from '@/lib/flasher';
 
 // Session-level cache so revisiting a tab never re-downloads its content.
 const restCache = new Map<string, Promise<string>>();
@@ -67,7 +68,7 @@ export function DocRestLoader({ url }: { url: string }) {
           const id = decodeURIComponent(hash.slice(1));
           const target = document.getElementById(id);
           if (target && host.contains(target)) {
-            (window as unknown as { doFlashFor?: (id: string) => void }).doFlashFor?.(id);
+            doFlashFor(id);
           }
         }
       })
