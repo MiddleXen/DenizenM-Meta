@@ -458,7 +458,7 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
       isFullSafe: true,
       isPartial: false,
       safeCount: 999,
-      badgeHtml: makeSafeBadge('Full Async-Safe'),
+      badgeHtml: makeSafeBadge('Fully Async-Safe'),
       descriptionText: `Every tag on this object type is completely safe off the main thread. Pure data processing.`,
     };
   }
