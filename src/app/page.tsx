@@ -196,10 +196,10 @@ export default async function HomePage() {
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border ${cat.badgeStyle}`}>
+                      <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border inline-flex items-center justify-center leading-none ${cat.badgeStyle}`}>
                         {cat.tag}
                       </span>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-slate-50 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-slate-50 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 inline-flex items-center justify-center leading-none">
                         {cat.count.toLocaleString()}
                       </span>
                     </div>

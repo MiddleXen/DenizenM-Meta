@@ -74,7 +74,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
   return (
     <div ref={containerRef} className="relative z-50 w-full max-w-xl mx-auto text-left px-3 sm:px-0">
       <div className="relative flex items-center w-full rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-200 focus-within:border-emerald-500/60 focus-within:ring-4 focus-within:ring-emerald-500/10">
-        <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -106,7 +106,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
               router.push(basePath);
               inputRef.current?.focus();
             }}
-            className="absolute right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
             aria-label="Clear filter"
           >
             <X className="w-3.5 h-3.5" />

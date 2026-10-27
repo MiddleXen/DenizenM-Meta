@@ -202,7 +202,7 @@ export function SearchAutocomplete({
         <div className="flex items-center gap-1.5">
           <span>{categoryFilter ? `${categoryFilter} Suggestions` : 'Suggestions'}</span>
           {matches.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-[#00bc8c]">
+            <span className="px-1.5 py-0.5 inline-flex items-center justify-center leading-none rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-[#00bc8c]">
               {matches.length}
             </span>
           )}

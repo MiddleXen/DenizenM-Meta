@@ -104,10 +104,10 @@ export function Footer() {
                   href="https://discord.gg/F2nftfP3nq"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-[#5865F2] transition-colors flex items-center gap-1.5"
+                  className="hover:text-[#5865F2] transition-colors inline-flex items-center gap-1.5 leading-none"
                 >
-                  <DiscordIcon className="w-3.5 h-3.5" />
-                  <span>Discord Community</span>
+                  <DiscordIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="leading-none">Discord Community</span>
                 </a>
               </li>
               <li>
@@ -115,10 +115,10 @@ export function Footer() {
                   href="https://guide.denizenscript.com/"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-emerald-600 transition-colors flex items-center gap-1.5"
+                  className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 leading-none"
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Official Beginner&apos;s Guide</span>
+                  <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="leading-none">Official Beginner&apos;s Guide</span>
                 </a>
               </li>
               <li>
@@ -126,10 +126,10 @@ export function Footer() {
                   href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5"
+                  className="hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-1.5 leading-none"
                 >
-                  <GithubIcon className="w-3.5 h-3.5" />
-                  <span>GitHub Repository</span>
+                  <GithubIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="leading-none">GitHub Repository</span>
                 </a>
               </li>
             </ul>

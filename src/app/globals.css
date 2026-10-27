@@ -423,6 +423,12 @@ tr.table-secondary td {
   fill: currentColor;
 }
 
+.source-github-text {
+  display: inline-block !important;
+  line-height: 1 !important;
+  transform: translateY(-0.5px);
+}
+
 .source-github-arrow {
   width: 10px;
   height: 10px;

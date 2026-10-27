@@ -106,13 +106,13 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 leading-none transition-all cursor-pointer ${
                   themeMenuOpen
                     ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                 }`}
               >
-                <span>Theme</span>
+                <span className="leading-none">Theme</span>
                 <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-150 ${themeMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -231,7 +231,7 @@ export function Navbar() {
                 onKeyDown={handleSearchKeyDown}
                 className="w-full pl-8.5 pr-8 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
               />
-              <kbd className="hidden sm:inline-block absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-mono font-semibold text-slate-400 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded">
+              <kbd className="hidden sm:inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 px-1.5 h-4.5 text-[9px] font-mono font-semibold leading-none text-slate-400 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded">
                 ↵
               </kbd>
 

@@ -102,7 +102,7 @@ export function HomeSearch() {
       <div className="relative w-full">
         <form onSubmit={handleSearch} className="w-full">
           <div className="relative flex items-center w-full rounded-2xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/90 dark:border-white/[0.08] shadow-md dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-200 focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/10">
-            <div className="pl-4 sm:pl-4.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500">
+            <div className="pl-4 sm:pl-4.5 flex items-center justify-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500">
               <Search className="w-5 h-5 transition-colors" />
             </div>
 
@@ -136,7 +136,7 @@ export function HomeSearch() {
                     setIsOpen(false);
                     inputRef.current?.focus();
                   }}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                   aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />
@@ -145,10 +145,10 @@ export function HomeSearch() {
 
               <button
                 type="submit"
-                className="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer"
+                className="h-9 sm:h-9.5 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
               >
-                <span>Search</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span className="leading-none select-none -translate-y-[0.5px]">Search</span>
+                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
               </button>
             </div>
           </div>
@@ -170,10 +170,10 @@ export function HomeSearch() {
 
       {/* Recent Searches (Displayed ONLY when there is history) */}
       {recentSearches.length > 0 && (
-        <div className="mt-3.5 flex items-center justify-center flex-wrap gap-1.5 text-xs">
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 mr-0.5">
-            <Clock className="w-3 h-3 opacity-70" />
-            <span>Recent:</span>
+        <div className="mt-3 flex items-center justify-center flex-wrap gap-1.5 text-xs">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 mr-0.5 leading-none">
+            <Clock className="w-3 h-3 opacity-70 flex-shrink-0" />
+            <span className="leading-none">Recent:</span>
           </span>
           {recentSearches.map((term) => (
             <button
@@ -184,15 +184,15 @@ export function HomeSearch() {
                 setIsOpen(false);
                 inputRef.current?.focus();
               }}
-              className="px-2.5 py-1 rounded-md font-mono text-xs bg-white dark:bg-[#0c0e14] hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+              className="inline-flex items-center justify-center px-2.5 py-1 rounded-md font-mono text-xs leading-none bg-white dark:bg-[#0c0e14] hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
             >
-              {term}
+              <span className="leading-none">{term}</span>
             </button>
           ))}
           <button
             type="button"
             onClick={clearRecentSearches}
-            className="p-1 text-slate-400 hover:text-rose-500 transition-colors ml-1"
+            className="w-6 h-6 inline-flex items-center justify-center rounded text-slate-400 hover:text-rose-500 transition-colors ml-0.5 cursor-pointer"
             title="Clear search history"
             aria-label="Clear search history"
           >
