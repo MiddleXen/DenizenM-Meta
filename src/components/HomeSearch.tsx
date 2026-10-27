@@ -23,7 +23,13 @@ export function HomeSearch() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          setRecentSearches(parsed.slice(0, MAX_RECENT));
+          const filtered = parsed.filter(
+            (item): item is string => typeof item === 'string' && item.trim().length >= 2
+          );
+          setRecentSearches(filtered.slice(0, MAX_RECENT));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)));
+          }
         }
       }
     } catch (_) {}
@@ -31,7 +37,7 @@ export function HomeSearch() {
 
   const addRecentSearch = useCallback((term: string) => {
     const clean = term.trim();
-    if (!clean) return;
+    if (!clean || clean.length < 2) return;
     setRecentSearches((prev) => {
       const next = [clean, ...prev.filter((item) => item.toLowerCase() !== clean.toLowerCase())].slice(0, MAX_RECENT);
       try {
@@ -76,8 +82,9 @@ export function HomeSearch() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsOpen(false);
-    if (searchValue.trim()) {
-      addRecentSearch(searchValue.trim());
+    const query = searchValue.trim();
+    if (query && query.length >= 2) {
+      addRecentSearch(query);
     }
     triggerSearch();
   };
@@ -101,8 +108,8 @@ export function HomeSearch() {
       {/* Search Input Container - Autocomplete anchors directly to this */}
       <div className="relative w-full">
         <form onSubmit={handleSearch} className="w-full">
-          <div className="relative flex items-center w-full rounded-2xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/90 dark:border-white/[0.08] shadow-md dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-200 focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/10">
-            <div className="pl-4 sm:pl-4.5 flex items-center justify-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500">
+          <div className="group relative flex items-center w-full rounded-2xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/90 dark:border-white/[0.08] shadow-xs transition-all duration-200 focus-within:border-slate-400 dark:focus-within:border-white/25">
+            <div className="pl-4 sm:pl-4.5 flex items-center justify-center pointer-events-none text-slate-400 group-focus-within:text-slate-600 dark:group-focus-within:text-slate-200">
               <Search className="w-5 h-5 transition-colors" />
             </div>
 
@@ -158,9 +165,10 @@ export function HomeSearch() {
           query={searchValue}
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
-          onSelect={() => {
-            if (searchValue.trim()) {
-              addRecentSearch(searchValue.trim());
+          onSelect={(item) => {
+            const term = item?.cleanName || item?.name || searchValue.trim();
+            if (term && term.length >= 2) {
+              addRecentSearch(term);
             }
           }}
           activeIndex={activeIndex}

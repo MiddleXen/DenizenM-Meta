@@ -10,7 +10,7 @@ interface SearchAutocompleteProps {
   query: string;
   isOpen: boolean;
   onClose: () => void;
-  onSelect?: () => void;
+  onSelect?: (item?: SearchSuggestion) => void;
   activeIndex: number;
   setActiveIndex: React.Dispatch<React.SetStateAction<number>>;
   categoryFilter?: string;
@@ -95,9 +95,10 @@ export function SearchAutocomplete({
       if (e.key === 'Enter' && activeIndex >= 0 && matches[activeIndex]) {
         e.preventDefault();
         e.stopPropagation();
+        const selectedItem = matches[activeIndex];
         onClose();
-        if (onSelect) onSelect();
-        router.push(matches[activeIndex].href);
+        if (onSelect) onSelect(selectedItem);
+        router.push(selectedItem.href);
       }
     };
     window.addEventListener('keydown', handleKeyDownCapture, true);
@@ -188,10 +189,10 @@ export function SearchAutocomplete({
     );
   };
 
-  const handleItemClick = (href: string) => {
+  const handleItemClick = (item: SearchSuggestion) => {
     onClose();
-    if (onSelect) onSelect();
-    router.push(href);
+    if (onSelect) onSelect(item);
+    router.push(item.href);
   };
 
   return (
@@ -226,7 +227,7 @@ export function SearchAutocomplete({
                   itemRefs.current[idx] = el;
                 }}
                 onMouseMove={() => setActiveIndex(idx)}
-                onClick={() => handleItemClick(item.href)}
+                onClick={() => handleItemClick(item)}
                 className={`px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors duration-100 ${
                   isSelected
                     ? 'bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-300'
