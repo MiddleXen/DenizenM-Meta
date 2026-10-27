@@ -44,17 +44,26 @@ export function DocPageLayout({
 
         <div className="mt-3.5 mb-2 relative z-10 flex items-center justify-center">
           {model.isAll ? (
-            <span className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs">
-              Showing all <strong className="ml-1 mr-1 text-emerald-600 dark:text-emerald-400 font-mono font-bold">{model.max}</strong> {itemPlural}
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none">
+              <span>Showing all</span>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{model.max}</strong>
+              <span>{itemPlural}</span>
             </span>
           ) : model.searchText ? (
-            <span className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs">
-              Showing <strong className="ml-1 mr-1 text-emerald-600 dark:text-emerald-400 font-mono font-bold">{model.currentlyShown}</strong> results for{' '}
-              <code className="ml-1 mr-1 px-1.5 py-0.2 rounded bg-slate-100 dark:bg-white/10 text-emerald-600 dark:text-emerald-400 font-mono text-xs">{model.searchText}</code> out of {model.max} {itemPlural}
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none">
+              <span>Showing</span>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{model.currentlyShown}</strong>
+              <span>results for</span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] leading-tight">
+                {model.searchText}
+              </span>
+              <span>out of {model.max} {itemPlural}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs">
-              Showing <strong className="ml-1 mr-1 text-emerald-600 dark:text-emerald-400 font-mono font-bold">{model.currentlyShown}</strong> results out of {model.max} {itemPlural}
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none">
+              <span>Showing</span>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{model.currentlyShown}</strong>
+              <span>results out of {model.max} {itemPlural}</span>
             </span>
           )}
         </div>
