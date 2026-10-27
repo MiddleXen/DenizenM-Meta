@@ -188,11 +188,11 @@ export default async function HomePage() {
               <Link
                 key={cat.href}
                 href={cat.href}
-                className={`group relative p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] ${cat.hoverBorder} transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline shadow-xs hover:-translate-y-1`}
+                className={`group relative p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] ${cat.hoverBorder} transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline shadow-xs`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${cat.iconBoxStyle} shadow-2xs transition-transform duration-200 group-hover:scale-105`}>
+                    <div className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center ${cat.iconBoxStyle} shadow-2xs transition-transform duration-200 origin-center group-hover:scale-105`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -233,7 +233,7 @@ export default async function HomePage() {
             href="https://guide.denizenscript.com/"
             target="_blank"
             rel="noreferrer"
-            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(0,188,140,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs hover:-translate-y-1"
+            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(0,188,140,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
@@ -260,7 +260,7 @@ export default async function HomePage() {
             href="https://discord.gg/F2nftfP3nq"
             target="_blank"
             rel="noreferrer"
-            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-[#5865F2]/50 hover:shadow-[0_8px_30px_rgba(88,101,242,0.15)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs hover:-translate-y-1"
+            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-[#5865F2]/50 hover:shadow-[0_8px_30px_rgba(88,101,242,0.15)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
@@ -287,7 +287,7 @@ export default async function HomePage() {
             href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
             target="_blank"
             rel="noreferrer"
-            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs hover:-translate-y-1"
+            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
