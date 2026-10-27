@@ -60,7 +60,7 @@ export default async function RootLayout({
           </Suspense>
           <SearchProvider>
             <Navbar />
-            <main className="flex-1 w-full relative z-0">
+            <main className="flex-1 w-full relative z-10">
               {children}
             </main>
             <Footer />

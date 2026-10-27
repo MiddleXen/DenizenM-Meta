@@ -229,11 +229,8 @@ export function Navbar() {
                   if (searchValue.trim()) setIsSearchOpen(true);
                 }}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-8.5 pr-8 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
+                className="w-full pl-8.5 pr-3 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
               />
-              <kbd className="hidden sm:inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 px-1.5 h-4.5 text-[9px] font-mono font-semibold leading-none text-slate-400 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded">
-                ↵
-              </kbd>
 
               <SearchAutocomplete
                 query={searchValue}
