@@ -70,7 +70,8 @@ export function SearchAutocomplete({
 
   const matches = useMemo(() => {
     if (!query || query.trim().length === 0) return [];
-    return filterSuggestions(allSuggestions, query, 50, categoryFilter);
+    // Limit matches to 25 for better performance
+    return filterSuggestions(allSuggestions, query, 25, categoryFilter);
   }, [allSuggestions, query, categoryFilter]);
 
   // Keep itemRefs array size in sync
@@ -216,6 +217,7 @@ export function SearchAutocomplete({
       <div
         ref={listRef}
         className="max-h-[380px] sm:max-h-[460px] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-white/[0.06] py-1"
+        style={{ contentVisibility: 'auto' }}
       >
         {matches.length > 0 ? (
           matches.map((item, idx) => {

@@ -71,7 +71,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/90 dark:bg-[#0a0d12]/90 backdrop-blur-md border-b border-slate-200/90 dark:border-white/10">
+    <header className="sticky top-0 z-50 w-full bg-white/95 dark:bg-[#0a0d12]/95 backdrop-blur-sm border-b border-slate-200/90 dark:border-white/10 will-change-transform">
       <div className="max-w-[1550px] mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Logo / Brand */}

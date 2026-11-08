@@ -28,24 +28,33 @@ export function ThemeProvider({
   const applyTheme = useCallback((t: Theme) => {
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      root.classList.remove('dark', 'theme-black', 'theme-graphite');
 
-      if (t === 'black') {
-        root.classList.add('dark', 'theme-black');
-        root.setAttribute('data-theme', 'black');
-        root.style.colorScheme = 'dark';
-      } else if (t === 'graphite') {
-        root.classList.add('dark', 'theme-graphite');
-        root.setAttribute('data-theme', 'graphite');
-        root.style.colorScheme = 'dark';
-      } else if (t === 'dark') {
-        root.classList.add('dark');
-        root.setAttribute('data-theme', 'dark');
-        root.style.colorScheme = 'dark';
-      } else {
-        root.setAttribute('data-theme', 'light');
-        root.style.colorScheme = 'light';
-      }
+      // Use requestAnimationFrame to batch DOM updates
+      requestAnimationFrame(() => {
+        // Single classList operation to minimize reflows
+        root.className = root.className.split(' ').filter(c =>
+          !['dark', 'theme-black', 'theme-graphite'].includes(c)
+        ).join(' ');
+
+        // Apply new theme classes in one batch
+        if (t === 'black') {
+          root.classList.add('dark', 'theme-black');
+          root.setAttribute('data-theme', 'black');
+          root.style.colorScheme = 'dark';
+        } else if (t === 'graphite') {
+          root.classList.add('dark', 'theme-graphite');
+          root.setAttribute('data-theme', 'graphite');
+          root.style.colorScheme = 'dark';
+        } else if (t === 'dark') {
+          root.classList.add('dark');
+          root.setAttribute('data-theme', 'dark');
+          root.style.colorScheme = 'dark';
+        } else {
+          root.setAttribute('data-theme', 'light');
+          root.style.colorScheme = 'light';
+        }
+      });
+
       document.cookie = `cookie_theme=${t}; path=/; max-age=31536000; SameSite=Lax`;
       try {
         localStorage.setItem('theme', t);
