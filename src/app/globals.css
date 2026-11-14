@@ -336,6 +336,12 @@ table.table, table {
   overflow-clip-margin: 24px;
 }
 
+/* Keep the first ~15-20 cards at the very top of the page always rendered (<1% of Tags) so
+   scrolling back to the top has painted cards ready immediately with zero blank frames. */
+.doc-head center > .doc-card:nth-child(-n+24) {
+  content-visibility: visible;
+}
+
 .doc-card > table.table {
   margin: 0 auto !important;
 }

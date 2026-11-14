@@ -70,7 +70,7 @@ export function DocPageLayout({
       </div>
 
       <div className="w-full max-w-[1550px] mx-auto px-2 sm:px-4 relative z-0">
-        <div dangerouslySetInnerHTML={{ __html: model.headHtml }} />
+        <div className="doc-head" dangerouslySetInnerHTML={{ __html: model.headHtml }} />
         {restUrl && <DocRestLoader key={restUrl} url={restUrl} />}
       </div>
     </div>

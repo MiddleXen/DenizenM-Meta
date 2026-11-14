@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { smoothScrollToTop } from '@/lib/flasher';
 
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
@@ -27,7 +28,7 @@ export function BackToTop() {
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    smoothScrollToTop();
   };
 
   if (!visible) return null;

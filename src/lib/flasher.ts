@@ -10,6 +10,159 @@ declare global {
   }
 }
 
+/** Offset so the table header is cleanly below the sticky top navbar. */
+const NAVBAR_OFFSET = 70;
+let scrollToken = 0;
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+function clampScrollY(y: number): number {
+  const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  return Math.min(Math.max(0, y), maxScroll);
+}
+
+function targetTop(target: HTMLElement): number {
+  return Math.max(0, target.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0) - NAVBAR_OFFSET);
+}
+
+/** If the user starts scrolling manually during a programmatic glide, stop immediately. */
+function attachUserAbort(token: number, startedAt: number): () => void {
+  const cancel = () => {
+    if (performance.now() - startedAt < 24) return;
+    if (token === scrollToken) scrollToken++;
+  };
+  const userEvents = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const;
+  userEvents.forEach((type) => window.addEventListener(type, cancel, { once: true, passive: true }));
+  return () => userEvents.forEach((type) => window.removeEventListener(type, cancel));
+}
+
+/**
+ * Temporarily disables `content-visibility: auto` on cards right around `target` so jumping near
+ * `target` from hundreds of thousands of pixels away renders real cards on the very first frame.
+ */
+function unlockNearbyCards(target: HTMLElement): () => void {
+  const unlocked: HTMLElement[] = [];
+  const unlock = (el: Element | null) => {
+    if (el instanceof HTMLElement && el.classList.contains('doc-card') && !el.style.contentVisibility) {
+      el.style.contentVisibility = 'visible';
+      unlocked.push(el);
+    }
+  };
+  const anchorBox = target.closest('.doc-card') || target.closest('.category_title') || target;
+  unlock(anchorBox);
+  let prev = anchorBox.previousElementSibling;
+  for (let i = 0; i < 10 && prev; i++, prev = prev.previousElementSibling) unlock(prev);
+  let next = anchorBox.nextElementSibling;
+  for (let i = 0; i < 10 && next; i++, next = next.nextElementSibling) unlock(next);
+
+  return () => {
+    requestAnimationFrame(() => {
+      for (const el of unlocked) el.style.contentVisibility = '';
+    });
+  };
+}
+
+/**
+ * Smoothly scrolls back to `top: 0` without showing blank background on huge pages (Tags is ~900k px).
+ * Native `behavior: 'smooth'` across 100k+ px moves faster than GPU tile rasterization and
+ * `content-visibility` unlocking, producing empty frames. Instead we step into the already-rendered
+ * top region and glide the final ~2.4 viewports via `requestAnimationFrame`.
+ */
+export function smoothScrollToTop(): void {
+  if (typeof window === 'undefined') return;
+  const token = ++scrollToken;
+  let startY = window.scrollY || window.pageYOffset || 0;
+  if (startY <= 0) return;
+
+  if (prefersReducedMotion()) {
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  const maxGlide = Math.max(1200, Math.round(window.innerHeight * 2.4));
+  if (startY > maxGlide) {
+    window.scrollTo({ top: maxGlide, behavior: 'instant' as ScrollBehavior });
+    startY = maxGlide;
+  }
+
+  const startedAt = performance.now();
+  const duration = Math.min(420, Math.max(220, startY * 0.18));
+  const cleanup = attachUserAbort(token, startedAt);
+
+  const step = (now: number) => {
+    if (token !== scrollToken) {
+      cleanup();
+      return;
+    }
+    const p = Math.min(1, (now - startedAt) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    window.scrollTo(0, Math.round(startY * (1 - eased)));
+    if (p < 1) {
+      requestAnimationFrame(step);
+    } else {
+      cleanup();
+    }
+  };
+
+  requestAnimationFrame(step);
+}
+
+function scrollToTarget(target: HTMLElement): void {
+  const token = ++scrollToken;
+  const restoreCards = unlockNearbyCards(target);
+  const desired = clampScrollY(targetTop(target));
+  let startY = window.scrollY || window.pageYOffset || 0;
+
+  if (Math.abs(desired - startY) <= 2) {
+    restoreCards();
+    return;
+  }
+
+  if (prefersReducedMotion()) {
+    window.scrollTo(0, desired);
+    restoreCards();
+    return;
+  }
+
+  const maxGlide = Math.max(1200, Math.round(window.innerHeight * 2.2));
+  if (Math.abs(desired - startY) > maxGlide) {
+    const direction = desired > startY ? 1 : -1;
+    const approachY = clampScrollY(desired - direction * maxGlide);
+    window.scrollTo({ top: approachY, behavior: 'instant' as ScrollBehavior });
+    startY = window.scrollY || window.pageYOffset || approachY;
+  }
+
+  const startedAt = performance.now();
+  const distance = Math.abs(clampScrollY(targetTop(target)) - startY);
+  const duration = Math.min(420, Math.max(220, distance * 0.18));
+  const cleanup = attachUserAbort(token, startedAt);
+
+  const finish = () => {
+    cleanup();
+    restoreCards();
+  };
+
+  const step = (now: number) => {
+    if (token !== scrollToken || !target.isConnected) {
+      finish();
+      return;
+    }
+    const p = Math.min(1, (now - startedAt) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const liveDesired = clampScrollY(targetTop(target));
+    window.scrollTo(0, Math.round(startY + (liveDesired - startY) * eased));
+    if (p < 1) {
+      requestAnimationFrame(step);
+    } else {
+      finish();
+    }
+  };
+
+  requestAnimationFrame(step);
+}
+
 export function doFlashFor(elementId: string, e?: Event | React.MouseEvent | MouseEvent): void {
   if (e && 'preventDefault' in e && typeof e.preventDefault === 'function') {
     e.preventDefault();
@@ -34,56 +187,6 @@ export function doFlashFor(elementId: string, e?: Event | React.MouseEvent | Mou
   // Update hash in URL without triggering native browser jump
   if (window.history && window.history.pushState) {
     window.history.pushState(null, '', '#' + elementId);
-  }
-}
-
-/** Offset so the table header is cleanly below the sticky top navbar. */
-const NAVBAR_OFFSET = 70;
-let scrollToken = 0;
-
-function targetTop(target: HTMLElement): number {
-  return Math.max(0, target.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0) - NAVBAR_OFFSET);
-}
-
-/**
- * Doc cards use `content-visibility: auto`, so cards that were never on screen are laid out with an
- * estimated height. While smooth-scrolling past them they get their real height and the target moves,
- * so once the scroll settles we re-measure and correct (a few times at most).
- */
-function scrollToTarget(target: HTMLElement): void {
-  const token = ++scrollToken;
-  window.scrollTo({ top: targetTop(target), behavior: 'smooth' });
-
-  // If the user takes over scrolling, never yank the page back.
-  const cancel = () => {
-    if (token === scrollToken) scrollToken++;
-  };
-  const userEvents = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const;
-  userEvents.forEach((type) => window.addEventListener(type, cancel, { once: true, passive: true }));
-  const cleanup = () => userEvents.forEach((type) => window.removeEventListener(type, cancel));
-
-  let corrections = 0;
-  const settle = () => {
-    if (token !== scrollToken || !target.isConnected) return cleanup();
-    const desired = targetTop(target);
-    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-    if (Math.abs(window.scrollY - Math.min(desired, maxScroll)) <= 2 || corrections >= 3) return cleanup();
-    corrections++;
-    window.scrollTo({ top: desired, behavior: 'instant' as ScrollBehavior });
-    requestAnimationFrame(() => requestAnimationFrame(settle));
-  };
-
-  if ('onscrollend' in window) {
-    const onEnd = () => {
-      window.removeEventListener('scrollend', onEnd);
-      clearTimeout(fallback);
-      settle();
-    };
-    // Fallback if no scroll happens at all (already at target) or scrollend never fires.
-    const fallback = setTimeout(onEnd, 1500);
-    window.addEventListener('scrollend', onEnd);
-  } else {
-    setTimeout(settle, 800);
   }
 }
 
