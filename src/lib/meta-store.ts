@@ -283,12 +283,22 @@ export function handleMetaPage<T extends AnyMetaObject>(
   let outText = '<center>\n';
 
   if (categories.length > 1) {
+    // Entry anchors use the entry's cleanName as id (see meta-loader). A few categories have the same
+    // name as an entry (e.g. category "queue" and command "queue", category "proc" and tag <proc>),
+    // which produced duplicate ids: the chip or the entry link then jumped to the wrong element.
+    // Only those colliding categories get a prefixed id; every other anchor stays exactly the same.
+    const entryIds = new Set(toDisplay.map((o) => o.cleanName));
+    const categoryAnchor = (cat: string) => {
+      const linkable = encodeURIComponent(cat.toLowerCase());
+      return entryIds.has(linkable) ? `category-${linkable}` : linkable;
+    };
+
     outText += '<div class="categories_wrapper">\n';
     outText += `  <div class="categories_header"><span class="categories_title">Categories</span><span class="categories_badge">${categories.length}</span></div>\n`;
     outText += '  <div class="categories_container">\n';
     outText += categories
       .map((cat) => {
-        const linkable = encodeURIComponent(cat.toLowerCase());
+        const linkable = categoryAnchor(cat);
         return `    <a href="#${linkable}" onclick="doFlashFor('${linkable}', event)" class="category_chip">${escapeForHTML(cat)}</a>`;
       })
       .join('\n');
@@ -304,7 +314,7 @@ export function handleMetaPage<T extends AnyMetaObject>(
     }
 
     for (const cat of categories) {
-      const linkable = encodeURIComponent(cat.toLowerCase());
+      const linkable = categoryAnchor(cat);
       outText += `<hr class="category_divider"><h4 class="category_title">Category: <a id="${linkable}" href="#${linkable}" onclick="doFlashFor('${linkable}', event)">${escapeForHTML(cat)}</a></h4>\n`;
       const catObjs = byCategory.get(cat) || [];
       const distinctHtml = Array.from(new Set(catObjs.map((o) => o.htmlContent)));
