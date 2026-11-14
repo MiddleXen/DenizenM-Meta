@@ -34,12 +34,23 @@ async function getSuggestionsData(): Promise<SearchSuggestion[]> {
         return data;
       }
     } catch (e) {
-      console.warn('Failed to load search suggestions json, fallback to API:', e);
+      console.warn('Failed to load search suggestions json:', e);
     }
+    // Allow a retry on the next focus instead of caching the failure for the whole session.
+    fetchPromise = null;
     return [];
   })();
 
   return fetchPromise;
+}
+
+/**
+ * The suggestions index is ~1 MB of JSON. It used to be downloaded and parsed on every first page
+ * load (every page has a search bar), competing with the page itself. Now it is fetched only when
+ * a search input gets focus or the dropdown is about to be shown.
+ */
+export function preloadSuggestions(): void {
+  if (!memorySuggestions) void getSuggestionsData();
 }
 
 export function SearchAutocomplete({
@@ -54,25 +65,40 @@ export function SearchAutocomplete({
   className = '',
 }: SearchAutocompleteProps) {
   const router = useRouter();
-  const [allSuggestions, setAllSuggestions] = useState<SearchSuggestion[]>(memorySuggestions || []);
+  const [allSuggestions, setAllSuggestions] = useState<SearchSuggestion[] | null>(memorySuggestions);
+  const [loadFailed, setLoadFailed] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const visible = isOpen && query.trim().length > 0;
 
   useEffect(() => {
-    if (!memorySuggestions) {
-      getSuggestionsData().then((data) => {
-        if (data && data.length > 0) {
-          setAllSuggestions(data);
-        }
-      });
-    }
-  }, []);
+    if (!visible || allSuggestions) return;
+    let alive = true;
+    setLoadFailed(false);
+    getSuggestionsData().then((data) => {
+      if (!alive) return;
+      if (data && data.length > 0) setAllSuggestions(data);
+      else setLoadFailed(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [visible, allSuggestions]);
 
   const matches = useMemo(() => {
-    if (!query || query.trim().length === 0) return [];
+    // Nothing is rendered while closed, so don't filter thousands of entries on every keystroke then.
+    if (!visible || !allSuggestions) return [];
     // Limit matches to 25 for better performance
     return filterSuggestions(allSuggestions, query, 25, categoryFilter);
-  }, [allSuggestions, query, categoryFilter]);
+  }, [visible, allSuggestions, query, categoryFilter]);
+
+  // Keyboard navigation in the parent inputs just increments the index; keep it inside the list
+  // (previously ArrowDown past the last item made the highlight disappear and Enter did nothing).
+  useEffect(() => {
+    if (activeIndex > -1 && activeIndex >= matches.length) {
+      setActiveIndex(matches.length - 1);
+    }
+  }, [activeIndex, matches.length, setActiveIndex]);
 
   // Keep itemRefs array size in sync
   useEffect(() => {
@@ -219,7 +245,9 @@ export function SearchAutocomplete({
         className="max-h-[380px] sm:max-h-[460px] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-white/[0.06] py-1"
         style={{ contentVisibility: 'auto' }}
       >
-        {matches.length > 0 ? (
+        {!allSuggestions && !loadFailed ? (
+          <div className="px-4 py-5 text-xs text-center text-slate-500 dark:text-zinc-400">Loading suggestions&hellip;</div>
+        ) : matches.length > 0 ? (
           matches.map((item, idx) => {
             const isSelected = activeIndex === idx;
             return (

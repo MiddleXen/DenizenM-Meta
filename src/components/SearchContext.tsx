@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface SearchContextType {
@@ -14,6 +14,8 @@ const SearchContext = createContext<SearchContextType>({
   setSearchValue: () => {},
   triggerSearch: () => {},
 });
+
+const DOC_FILTER_PATH = /^\/Docs\/[^/]+\/[^/]+/i;
 
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState('');
@@ -31,8 +33,11 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
           // ignore
         }
       }
-    } else {
-      // Clear search input when leaving search or reloading other pages
+    } else if (!DOC_FILTER_PATH.test(pathname)) {
+      // Clear search input when leaving search or reloading other pages.
+      // Filtered doc pages (`/Docs/<Kind>/<filter>`) are skipped: their DocSearchBar puts the filter
+      // into the input from its own effect, and child effects run *before* this one, so clearing
+      // here would wipe the value it just set.
       setSearchValue('');
     }
   }, [pathname]);
@@ -47,8 +52,13 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     router.push(`/Docs/Search/${encodeURIComponent(trimmed)}`);
   }, [searchValue, router]);
 
+  const value = useMemo(
+    () => ({ searchValue, setSearchValue, triggerSearch }),
+    [searchValue, triggerSearch],
+  );
+
   return (
-    <SearchContext.Provider value={{ searchValue, setSearchValue, triggerSearch }}>
+    <SearchContext.Provider value={value}>
       {children}
     </SearchContext.Provider>
   );

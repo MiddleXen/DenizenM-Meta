@@ -104,6 +104,40 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
   });
 }
 
+interface NormalizedSuggestion {
+  c: string;
+  n: string;
+  d: string;
+  untaggedClean: string;
+  untaggedName: string;
+  keywords: string[];
+  combined: string;
+}
+
+/** Lower-cased/derived strings per suggestion, computed once instead of on every keystroke. */
+const normalizedCache = new WeakMap<SearchSuggestion, NormalizedSuggestion>();
+
+function normalize(item: SearchSuggestion): NormalizedSuggestion {
+  let norm = normalizedCache.get(item);
+  if (!norm) {
+    const c = item.cleanName.toLowerCase();
+    const n = item.name.toLowerCase().replace(/^<|>$/g, '');
+    const d = item.description.toLowerCase();
+    const keywords = (item.keywords || []).map((k) => k.toLowerCase());
+    norm = {
+      c,
+      n,
+      d,
+      untaggedClean: c.replace(/tag\./g, '.'),
+      untaggedName: n.replace(/tag\./g, '.'),
+      keywords,
+      combined: `${c} ${n} ${d} ${keywords.join(' ')}`,
+    };
+    normalizedCache.set(item, norm);
+  }
+  return norm;
+}
+
 export function filterSuggestions(
   list: SearchSuggestion[],
   rawQuery: string,
@@ -122,11 +156,7 @@ export function filterSuggestions(
   const scored: Array<{ item: SearchSuggestion; score: number }> = [];
 
   for (const item of filtered) {
-    const c = item.cleanName.toLowerCase();
-    const n = item.name.toLowerCase().replace(/^<|>$/g, '');
-    const d = item.description.toLowerCase();
-    const untaggedClean = c.replace(/tag\./g, '.');
-    const untaggedName = n.replace(/tag\./g, '.');
+    const { c, n, d, untaggedClean, untaggedName, keywords, combined } = normalize(item);
     let score = 0;
 
     if (c === q || n === q || untaggedClean === q || untaggedName === q) {
@@ -151,9 +181,9 @@ export function filterSuggestions(
       score = 65;
     } else if (n.includes(q) || untaggedName.includes(q)) {
       score = 55;
-    } else if (item.keywords && item.keywords.some((k) => k.toLowerCase() === q)) {
+    } else if (keywords.some((k) => k === q)) {
       score = 45;
-    } else if (item.keywords && item.keywords.some((k) => k.toLowerCase().includes(q))) {
+    } else if (keywords.some((k) => k.includes(q))) {
       score = 35;
     } else if (d.includes(q)) {
       score = 25;
@@ -163,8 +193,7 @@ export function filterSuggestions(
     if (score === 0 && words.length > 1) {
       const allWordsInClean = words.every((w) => c.includes(w) || untaggedClean.includes(w));
       const allWordsInName = words.every((w) => n.includes(w) || untaggedName.includes(w));
-      const allCombined = `${c} ${n} ${d} ${(item.keywords || []).join(' ')}`.toLowerCase();
-      const allWordsInItem = words.every((w) => allCombined.includes(w));
+      const allWordsInItem = words.every((w) => combined.includes(w));
 
       if (allWordsInClean || allWordsInName) {
         score = 70;

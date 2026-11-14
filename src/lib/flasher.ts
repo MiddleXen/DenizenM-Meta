@@ -29,18 +29,61 @@ export function doFlashFor(elementId: string, e?: Event | React.MouseEvent | Mou
   void (target as HTMLElement).offsetWidth;
   target.classList.add('flash');
 
-  // Offset by 70px so the table header is cleanly below the sticky top navbar
-  const rect = target.getBoundingClientRect();
-  const targetY = Math.max(0, rect.top + (window.pageYOffset || window.scrollY || 0) - 70);
-
-  window.scrollTo({
-    top: targetY,
-    behavior: 'smooth',
-  });
+  scrollToTarget(target as HTMLElement);
 
   // Update hash in URL without triggering native browser jump
   if (window.history && window.history.pushState) {
     window.history.pushState(null, '', '#' + elementId);
+  }
+}
+
+/** Offset so the table header is cleanly below the sticky top navbar. */
+const NAVBAR_OFFSET = 70;
+let scrollToken = 0;
+
+function targetTop(target: HTMLElement): number {
+  return Math.max(0, target.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0) - NAVBAR_OFFSET);
+}
+
+/**
+ * Doc cards use `content-visibility: auto`, so cards that were never on screen are laid out with an
+ * estimated height. While smooth-scrolling past them they get their real height and the target moves,
+ * so once the scroll settles we re-measure and correct (a few times at most).
+ */
+function scrollToTarget(target: HTMLElement): void {
+  const token = ++scrollToken;
+  window.scrollTo({ top: targetTop(target), behavior: 'smooth' });
+
+  // If the user takes over scrolling, never yank the page back.
+  const cancel = () => {
+    if (token === scrollToken) scrollToken++;
+  };
+  const userEvents = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const;
+  userEvents.forEach((type) => window.addEventListener(type, cancel, { once: true, passive: true }));
+  const cleanup = () => userEvents.forEach((type) => window.removeEventListener(type, cancel));
+
+  let corrections = 0;
+  const settle = () => {
+    if (token !== scrollToken || !target.isConnected) return cleanup();
+    const desired = targetTop(target);
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    if (Math.abs(window.scrollY - Math.min(desired, maxScroll)) <= 2 || corrections >= 3) return cleanup();
+    corrections++;
+    window.scrollTo({ top: desired, behavior: 'instant' as ScrollBehavior });
+    requestAnimationFrame(() => requestAnimationFrame(settle));
+  };
+
+  if ('onscrollend' in window) {
+    const onEnd = () => {
+      window.removeEventListener('scrollend', onEnd);
+      clearTimeout(fallback);
+      settle();
+    };
+    // Fallback if no scroll happens at all (already at target) or scrollend never fires.
+    const fallback = setTimeout(onEnd, 1500);
+    window.addEventListener('scrollend', onEnd);
+  } else {
+    setTimeout(settle, 800);
   }
 }
 

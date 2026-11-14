@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { useSearchContext } from './SearchContext';
-import { SearchAutocomplete } from './SearchAutocomplete';
+import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
 
 interface DocSearchBarProps {
   basePath: string;
@@ -91,6 +91,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
             setActiveIndex(-1);
           }}
           onFocus={() => {
+            preloadSuggestions();
             if (searchValue.trim()) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}

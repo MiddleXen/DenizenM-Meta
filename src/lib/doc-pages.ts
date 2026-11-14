@@ -1,4 +1,4 @@
-import { getMetaDocs, handleGlobalSearch, handleMetaPage } from './meta-store';
+import { DOC_CARD_END, getMetaDocs, handleGlobalSearch, handleMetaPage } from './meta-store';
 import { cleanTag } from './util';
 import { DocViewModel, MetaDocsData, MetaEventObject } from './types';
 
@@ -12,6 +12,11 @@ export function isDocKind(v: string | null | undefined): v is DocKind {
 /** Size of server-rendered HTML before the rest is deferred to the client. */
 const HEAD_BUDGET_BYTES = 120_000;
 const MAX_CACHE_ENTRIES = 120;
+/**
+ * Bump whenever the generated HTML or the head/rest split changes, so browsers never combine a
+ * freshly rendered head with a rest part cached (max-age) from the previous format.
+ */
+const REST_FORMAT = '2';
 
 export interface SplitDocModel extends DocViewModel {
   headHtml: string;
@@ -52,8 +57,8 @@ function buildModel(docs: MetaDocsData, kind: DocKind, id: string | null): DocVi
 }
 
 /**
- * Splits `<center>...</center>` content right after a top-level `</table>` once the budget is reached.
- * Doc tables are never nested, so `</table>` is always a safe boundary.
+ * Splits `<center>...</center>` content right after a doc card (`</table></div>`) once the budget is reached.
+ * Doc tables are never nested, so the end of a card is always a safe boundary.
  */
 function splitContent(html: string): { head: string; rest: string } {
   let inner = html;
@@ -63,11 +68,11 @@ function splitContent(html: string): { head: string; rest: string } {
   if (inner.length <= HEAD_BUDGET_BYTES * 1.5) {
     return { head: `<center>${inner}</center>`, rest: '' };
   }
-  const cut = inner.indexOf('</table>', HEAD_BUDGET_BYTES);
+  const cut = inner.indexOf(DOC_CARD_END, HEAD_BUDGET_BYTES);
   if (cut === -1) {
     return { head: `<center>${inner}</center>`, rest: '' };
   }
-  const splitAt = cut + '</table>'.length;
+  const splitAt = cut + DOC_CARD_END.length;
   return {
     head: `<center>${inner.slice(0, splitAt)}</center>`,
     rest: inner.slice(splitAt),
@@ -102,7 +107,7 @@ export async function getDocModel(kind: DocKind, id: string | null): Promise<Spl
 }
 
 export function restUrlFor(kind: DocKind, id: string | null, version: string): string {
-  const params = new URLSearchParams({ kind, v: version });
+  const params = new URLSearchParams({ kind, v: version, f: REST_FORMAT });
   if (id) params.set('id', id);
   return `/api/doc-rest?${params.toString()}`;
 }

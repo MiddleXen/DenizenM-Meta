@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, ArrowRight, X, Clock, Trash2 } from 'lucide-react';
 import { useSearchContext } from './SearchContext';
-import { SearchAutocomplete } from './SearchAutocomplete';
+import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
 
 const RECENT_KEY = 'denizen_recent_searches';
 const MAX_RECENT = 6;
@@ -127,6 +127,7 @@ export function HomeSearch() {
                 setActiveIndex(-1);
               }}
               onFocus={() => {
+                preloadSuggestions();
                 if (searchValue.trim()) setIsOpen(true);
               }}
               onKeyDown={handleKeyDown}

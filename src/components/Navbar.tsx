@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import { useSearchContext } from './SearchContext';
 import { Search, ChevronDown, Check, Menu, X, BookOpen } from 'lucide-react';
-import { SearchAutocomplete } from './SearchAutocomplete';
+import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
 
 const NAV_LINKS = [
   { href: '/Docs/Commands', label: 'Commands' },
@@ -226,6 +226,7 @@ export function Navbar() {
                   setSearchActiveIndex(-1);
                 }}
                 onFocus={() => {
+                  preloadSuggestions();
                   if (searchValue.trim()) setIsSearchOpen(true);
                 }}
                 onKeyDown={handleSearchKeyDown}

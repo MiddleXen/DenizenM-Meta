@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') || '';
   const type = req.nextUrl.searchParams.get('type') || undefined;
   const limitStr = req.nextUrl.searchParams.get('limit') || '8';
-  const limit = Math.min(20, Math.max(1, parseInt(limitStr, 10)));
+  const limit = Math.min(20, Math.max(1, parseInt(limitStr, 10) || 8));
 
   if (!q.trim()) {
     return NextResponse.json([]);

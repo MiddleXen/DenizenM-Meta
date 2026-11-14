@@ -4,22 +4,39 @@ import { useEffect, useRef } from 'react';
 import { doFlashFor } from '@/lib/flasher';
 
 // Session-level cache so revisiting a tab never re-downloads its content.
+// Bounded (LRU): a single big page is several MB of HTML, so keeping every page ever visited
+// for the whole session would only grow memory.
+const MAX_CACHED_PAGES = 6;
 const restCache = new Map<string, Promise<string>>();
 
 function loadRest(url: string): Promise<string> {
   let p = restCache.get(url);
-  if (!p) {
-    p = fetch(url).then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.text();
-    });
-    p.catch(() => restCache.delete(url));
+  if (p) {
+    // Refresh recency.
+    restCache.delete(url);
     restCache.set(url, p);
+    return p;
+  }
+  p = fetch(url).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.text();
+  });
+  p.catch(() => {
+    if (restCache.get(url) === p) restCache.delete(url);
+  });
+  restCache.set(url, p);
+  while (restCache.size > MAX_CACHED_PAGES) {
+    const oldest = restCache.keys().next().value;
+    if (oldest === undefined) break;
+    restCache.delete(oldest);
   }
   return p;
 }
 
-/** Splits HTML into pieces at top-level `</table>` boundaries (~CHUNK bytes each). */
+/** Every entry ends with this (see `wrapDocCard` in meta-store), so cutting there never splits a card. */
+const CARD_END = '</table></div>';
+
+/** Splits HTML into pieces at doc-card boundaries (~CHUNK bytes each). */
 function chunkHtml(html: string, size: number): string[] {
   const chunks: string[] = [];
   let start = 0;
@@ -28,8 +45,8 @@ function chunkHtml(html: string, size: number): string[] {
       chunks.push(html.slice(start));
       break;
     }
-    const cut = html.indexOf('</table>', start + size);
-    const end = cut === -1 ? html.length : cut + '</table>'.length;
+    const cut = html.indexOf(CARD_END, start + size);
+    const end = cut === -1 ? html.length : cut + CARD_END.length;
     chunks.push(html.slice(start, end));
     start = end;
   }
@@ -37,8 +54,6 @@ function chunkHtml(html: string, size: number): string[] {
 }
 
 const CHUNK_BYTES = 250_000;
-/** Don't touch the DOM while the page-enter animation is running. */
-const ENTER_ANIMATION_MS = 300;
 
 export function DocRestLoader({ url }: { url: string }) {
   const hostRef = useRef<HTMLElement>(null);
@@ -47,13 +62,9 @@ export function DocRestLoader({ url }: { url: string }) {
     const host = hostRef.current;
     if (!host) return;
     let cancelled = false;
-    const mountedAt = performance.now();
 
     loadRest(url)
       .then(async (html) => {
-        const wait = ENTER_ANIMATION_MS - (performance.now() - mountedAt);
-        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-
         for (const chunk of chunkHtml(html, CHUNK_BYTES)) {
           if (cancelled) return;
           host.insertAdjacentHTML('beforeend', chunk);
