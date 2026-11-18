@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useDeferredValue } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, BookOpen, Code, Tag, Zap, Cpu, Terminal, FileCode } from 'lucide-react';
-import { SearchSuggestion, filterSuggestions } from '@/lib/suggestions';
+import { SearchSuggestion, filterSuggestions, parseSuggestionsPayload } from '@/lib/suggestions';
 
 interface SearchAutocompleteProps {
   query: string;
@@ -29,14 +29,14 @@ async function getSuggestionsData(): Promise<SearchSuggestion[]> {
     try {
       const res = await fetch('/data/search-suggestions.json', { cache: 'force-cache' });
       if (res.ok) {
-        const data = await res.json();
+        const raw = await res.json();
+        const data = parseSuggestionsPayload(raw);
         memorySuggestions = data;
         return data;
       }
     } catch (e) {
       console.warn('Failed to load search suggestions json:', e);
     }
-    // Allow a retry on the next focus instead of caching the failure for the whole session.
     fetchPromise = null;
     return [];
   })();
@@ -44,13 +44,28 @@ async function getSuggestionsData(): Promise<SearchSuggestion[]> {
   return fetchPromise;
 }
 
-/**
- * The suggestions index is ~1 MB of JSON. It used to be downloaded and parsed on every first page
- * load (every page has a search bar), competing with the page itself. Now it is fetched only when
- * a search input gets focus or the dropdown is about to be shown.
- */
 export function preloadSuggestions(): void {
   if (!memorySuggestions) void getSuggestionsData();
+}
+
+function buildHighlightTokens(rawQuery: string): { regex: RegExp; lowerSet: Set<string> } | null {
+  const clean = rawQuery.trim().replace(/^<|>$/g, '');
+  if (!clean) return null;
+
+  // Split on whitespace and also include dot-separated sub-tokens (so `player.name` highlights `Player` and `name` in `<PlayerTag.name>`)
+  const rawTokens = clean
+    .split(/[\s.[\]]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+  if (rawTokens.length === 0) return null;
+
+  // Sort longest first so multi-char tokens match before single-char prefixes
+  const unique = Array.from(new Set(rawTokens)).sort((a, b) => b.length - a.length);
+  const escaped = unique.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return {
+    regex: new RegExp(`(${escaped.join('|')})`, 'gi'),
+    lowerSet: new Set(unique.map((u) => u.toLowerCase())),
+  };
 }
 
 export function SearchAutocomplete({
@@ -65,6 +80,7 @@ export function SearchAutocomplete({
   className = '',
 }: SearchAutocompleteProps) {
   const router = useRouter();
+  const deferredQuery = useDeferredValue(query);
   const [allSuggestions, setAllSuggestions] = useState<SearchSuggestion[] | null>(memorySuggestions);
   const [loadFailed, setLoadFailed] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -86,26 +102,22 @@ export function SearchAutocomplete({
   }, [visible, allSuggestions]);
 
   const matches = useMemo(() => {
-    // Nothing is rendered while closed, so don't filter thousands of entries on every keystroke then.
     if (!visible || !allSuggestions) return [];
-    // Limit matches to 25 for better performance
-    return filterSuggestions(allSuggestions, query, 25, categoryFilter);
-  }, [visible, allSuggestions, query, categoryFilter]);
+    return filterSuggestions(allSuggestions, deferredQuery, 25, categoryFilter);
+  }, [visible, allSuggestions, deferredQuery, categoryFilter]);
 
-  // Keyboard navigation in the parent inputs just increments the index; keep it inside the list
-  // (previously ArrowDown past the last item made the highlight disappear and Enter did nothing).
+  const highlighter = useMemo(() => buildHighlightTokens(deferredQuery), [deferredQuery]);
+
   useEffect(() => {
     if (activeIndex > -1 && activeIndex >= matches.length) {
       setActiveIndex(matches.length - 1);
     }
   }, [activeIndex, matches.length, setActiveIndex]);
 
-  // Keep itemRefs array size in sync
   useEffect(() => {
     itemRefs.current = itemRefs.current.slice(0, matches.length);
   }, [matches.length]);
 
-  // Auto-scroll selected active item into view during keyboard navigation
   useEffect(() => {
     if (activeIndex >= 0 && itemRefs.current[activeIndex]) {
       itemRefs.current[activeIndex]?.scrollIntoView({
@@ -115,7 +127,6 @@ export function SearchAutocomplete({
     }
   }, [activeIndex]);
 
-  // Handle Enter key when an autocomplete item is actively highlighted
   useEffect(() => {
     const handleKeyDownCapture = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -125,6 +136,7 @@ export function SearchAutocomplete({
         const selectedItem = matches[activeIndex];
         onClose();
         if (onSelect) onSelect(selectedItem);
+        window.dispatchEvent(new CustomEvent('agy:nav-start'));
         router.push(selectedItem.href);
       }
     };
@@ -190,28 +202,20 @@ export function SearchAutocomplete({
     }
   };
 
-  const highlightMatch = (text: string, q: string) => {
-    const cleanQ = q.trim();
-    if (!cleanQ) return text;
-    const words = cleanQ.split(/\s+/).filter(Boolean);
-    if (words.length === 0) return text;
-
-    const escapedWords = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    const regex = new RegExp(`(${escapedWords.join('|')})`, 'gi');
-    const parts = text.split(regex);
-
+  const renderHighlighted = (text: string) => {
+    if (!highlighter) return text;
+    const parts = text.split(highlighter.regex);
     return (
       <>
-        {parts.map((part, i) => {
-          const isMatch = words.some((w) => w.toLowerCase() === part.toLowerCase());
-          return isMatch ? (
+        {parts.map((part, i) =>
+          highlighter.lowerSet.has(part.toLowerCase()) ? (
             <span key={i} className="font-bold text-emerald-600 dark:text-emerald-400">
               {part}
             </span>
           ) : (
             part
-          );
-        })}
+          )
+        )}
       </>
     );
   };
@@ -219,6 +223,7 @@ export function SearchAutocomplete({
   const handleItemClick = (item: SearchSuggestion) => {
     onClose();
     if (onSelect) onSelect(item);
+    window.dispatchEvent(new CustomEvent('agy:nav-start'));
     router.push(item.href);
   };
 
@@ -268,7 +273,7 @@ export function SearchAutocomplete({
                   {getTypeBadge(item.type)}
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs font-semibold truncate">
-                      {highlightMatch(item.name, query)}
+                      {renderHighlighted(item.name)}
                     </div>
                     {item.description && (
                       <div className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">

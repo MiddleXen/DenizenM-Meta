@@ -27,6 +27,10 @@ const nextConfig = {
         destination: '/Docs/:path*',
       },
       {
+        source: '/docs',
+        destination: '/Docs',
+      },
+      {
         source: '/webhook/:path*',
         destination: '/Webhook/:path*',
       },

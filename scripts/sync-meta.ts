@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { loadAllMetaDocs, DEFAULT_SOURCES } from '../src/lib/meta-loader';
+import { loadAllMetaDocs, serializeMetaDocs, DEFAULT_SOURCES } from '../src/lib/meta-loader';
+import { buildSuggestionsFromDocs, serializeSuggestions } from '../src/lib/suggestions';
 
 async function main() {
   console.log('Fetching and building Denizen Meta docs...');
@@ -19,8 +20,16 @@ async function main() {
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
+
+  // Build suggestions BEFORE stripping build-only fields
+  const suggestions = buildSuggestionsFromDocs(docs);
+  const suggestionsStr = serializeSuggestions(suggestions);
+  const suggestionsFile = path.join(outDir, 'search-suggestions.json');
+  fs.writeFileSync(suggestionsFile, suggestionsStr);
+  console.log(`Saved search suggestions to ${suggestionsFile} (${(fs.statSync(suggestionsFile).size / 1024).toFixed(1)} KB)`);
+
+  const jsonStr = serializeMetaDocs(docs);
   const outFile = path.join(outDir, 'denizen-meta.json');
-  const jsonStr = JSON.stringify(docs);
   fs.writeFileSync(outFile, jsonStr);
   console.log(`Saved to ${outFile} (${(fs.statSync(outFile).size / 1024 / 1024).toFixed(2)} MB)`);
 
@@ -31,12 +40,6 @@ async function main() {
   const cacheFile = path.join(cacheDir, 'meta-docs.json');
   fs.writeFileSync(cacheFile, jsonStr);
   console.log(`Saved to ${cacheFile} (${(fs.statSync(cacheFile).size / 1024 / 1024).toFixed(2)} MB)`);
-
-  const { buildSuggestionsFromDocs } = await import('../src/lib/suggestions');
-  const suggestions = buildSuggestionsFromDocs(docs);
-  const suggestionsFile = path.join(outDir, 'search-suggestions.json');
-  fs.writeFileSync(suggestionsFile, JSON.stringify(suggestions));
-  console.log(`Saved search suggestions to ${suggestionsFile} (${(fs.statSync(suggestionsFile).size / 1024).toFixed(1)} KB)`);
 }
 
 main().catch((err) => {

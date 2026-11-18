@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
-import { useSearchContext } from './SearchContext';
 import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
 
 interface DocSearchBarProps {
@@ -13,19 +12,20 @@ interface DocSearchBarProps {
 }
 
 const getCategoryFromPath = (path: string): string | undefined => {
-  if (path.includes('/Docs/Commands')) return 'Command';
-  if (path.includes('/Docs/Tags')) return 'Tag';
-  if (path.includes('/Docs/Events')) return 'Event';
-  if (path.includes('/Docs/Mechanisms')) return 'Mechanism';
-  if (path.includes('/Docs/ObjectTypes')) return 'ObjectType';
-  if (path.includes('/Docs/Languages')) return 'Language';
-  if (path.includes('/Docs/Actions')) return 'Action';
+  const low = path.toLowerCase();
+  if (low.includes('/docs/commands')) return 'Command';
+  if (low.includes('/docs/tags')) return 'Tag';
+  if (low.includes('/docs/events')) return 'Event';
+  if (low.includes('/docs/mechanisms')) return 'Mechanism';
+  if (low.includes('/docs/objecttypes')) return 'ObjectType';
+  if (low.includes('/docs/languages')) return 'Language';
+  if (low.includes('/docs/actions')) return 'Action';
   return undefined;
 };
 
 export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchBarProps) {
   const router = useRouter();
-  const { searchValue, setSearchValue } = useSearchContext();
+  const [filterValue, setFilterValue] = useState(initialValue || '');
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,10 +33,8 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
   const categoryFilter = getCategoryFromPath(basePath);
 
   useEffect(() => {
-    if (initialValue) {
-      setSearchValue(initialValue);
-    }
-  }, [initialValue, setSearchValue]);
+    setFilterValue(initialValue || '');
+  }, [initialValue]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -46,6 +44,23 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Press `/` anywhere on a Doc page to jump straight to the section search bar
+  useEffect(() => {
+    const onGlobalKey = (e: KeyboardEvent) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement | null)?.isContentEditable) {
+        return;
+      }
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', onGlobalKey);
+    return () => window.removeEventListener('keydown', onGlobalKey);
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -59,13 +74,15 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
     } else if (e.key === 'Escape') {
       setIsOpen(false);
       setActiveIndex(-1);
+      inputRef.current?.blur();
     } else if (e.key === 'Enter') {
       setIsOpen(false);
-      const trimmed = searchValue.trim();
+      const trimmed = filterValue.trim();
+      window.dispatchEvent(new CustomEvent('agy:nav-start'));
       if (trimmed) {
         router.push(`${basePath}/${encodeURIComponent(trimmed)}`);
       } else {
-        setSearchValue('');
+        setFilterValue('');
         router.push(basePath);
       }
     }
@@ -80,31 +97,34 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
           type="text"
           id="search_bar"
           placeholder={placeholder}
-          value={searchValue}
+          value={filterValue}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
           onChange={(e) => {
-            setSearchValue(e.target.value);
+            setFilterValue(e.target.value);
             setIsOpen(true);
             setActiveIndex(-1);
           }}
           onFocus={() => {
             preloadSuggestions();
-            if (searchValue.trim()) setIsOpen(true);
+            if (filterValue.trim()) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
           style={{ paddingLeft: '2.85rem', paddingRight: '2.5rem' }}
           className="w-full py-2.5 sm:py-3 rounded-xl bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none"
         />
-        {searchValue && (
+        {filterValue && (
           <button
             type="button"
             onClick={() => {
-              setSearchValue('');
+              setFilterValue('');
               setIsOpen(false);
-              router.push(basePath);
+              if (initialValue) {
+                window.dispatchEvent(new CustomEvent('agy:nav-start'));
+                router.push(basePath);
+              }
               inputRef.current?.focus();
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
@@ -116,7 +136,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
       </div>
 
       <SearchAutocomplete
-        query={searchValue}
+        query={filterValue}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         activeIndex={activeIndex}

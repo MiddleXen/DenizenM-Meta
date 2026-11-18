@@ -18,6 +18,7 @@ import {
 import {
   cleanTag,
   escapeForHTML,
+  escapeHtmlAttr,
   escapeQuickSimple,
   urlSafe,
 } from './util';
@@ -593,11 +594,9 @@ export function getMatchQuality(helpers: SearchableHelpers, query: string): numb
   // Multi-word token search (e.g. "item containers" matches "item script containers")
   const words = q.split(/\s+/).filter(Boolean);
   if (words.length > 1) {
+    // Helpers are already lowercased by cleanList at build time.
     const checkAllWordsInSingleString = (list: string[], val: number): number => {
-      if (list.some((s) => {
-        const low = s.toLowerCase();
-        return words.every((w) => low.includes(w));
-      })) {
+      if (list.some((s) => words.every((w) => s.includes(w)))) {
         return val;
       }
       return 0;
@@ -621,14 +620,11 @@ export function getMatchQuality(helpers: SearchableHelpers, query: string): numb
       ...helpers.synonyms,
       ...helpers.strongs,
       ...helpers.decents,
-    ].join(' ').toLowerCase();
+    ].join(' ');
 
     if (words.every((w) => combined.includes(w))) {
       // If at least one word matches the title/cleanName directly
-      const hasTitleWord = helpers.perfectMatches.some((s) => {
-        const low = s.toLowerCase();
-        return words.some((w) => low.includes(w));
-      });
+      const hasTitleWord = helpers.perfectMatches.some((s) => words.some((w) => s.includes(w)));
       return hasTitleWord ? 7 : 4;
     }
   }
@@ -1080,6 +1076,18 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
     };
   }
 
+  // Precompute tag and mechanism counts per ObjectType for cross-linking
+  const tagCountByType = new Map<string, number>();
+  for (const t of Object.values(tags)) {
+    const key = t.beforeDot.toLowerCase();
+    tagCountByType.set(key, (tagCountByType.get(key) || 0) + 1);
+  }
+  const mechCountByType = new Map<string, number>();
+  for (const m of Object.values(mechanisms)) {
+    const key = m.mechObject.toLowerCase();
+    mechCountByType.set(key, (mechCountByType.get(key) || 0) + 1);
+  }
+
   // Compile all objects
   const allObjects: AnyMetaObject[] = [
     ...Object.values(commands),
@@ -1096,16 +1104,17 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
     obj.searchHelper = buildSearchables(obj);
 
     let html = HTML_PREFIX;
-    const aID = escapeForHTML(obj.cleanName);
+    const aID = escapeHtmlAttr(obj.cleanName);
+    const aHref = '#' + encodeURIComponent(obj.cleanName);
 
     switch (obj.type) {
       case 'Command': {
         const cmd = obj as MetaCommandObject;
         const asyncInfo = getCommandAsyncStatus(cmd.name);
-        html += tableLine('primary', 'Name', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)"><span class="doc_name">${escapeForHTML(cmd.name)}</span></a>`, false);
+        html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr('- ' + cmd.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(cmd.name)}</span></a>`, false);
         html += tableLine('default', 'Async Status', `${asyncInfo.badgeHtml} <span class="text-xs text-slate-500 dark:text-slate-400 ml-1.5 align-middle">${escapeForHTML(asyncInfo.descriptionText)}</span>`, false);
         if (cmd.guide) {
-          html += tableLine('default', 'Related Guide Page', `<a href="${escapeForHTML(cmd.guide)}">${escapeForHTML(cmd.guide)}</a>`, false);
+          html += tableLine('default', 'Related Guide Page', `<a href="${escapeHtmlAttr(cmd.guide)}" target="_blank" rel="noopener noreferrer">${escapeForHTML(cmd.guide)}</a>`, false);
         }
         html += tableLine('default', 'Syntax', htmlizeSyntax(cmd.syntax), false);
         html += tableLine('default', 'Short Description', cmd.short, true);
@@ -1120,10 +1129,10 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
       case 'Tag': {
         const tag = obj as MetaTagObject;
         const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
-        html += tableLine('primary', 'Name', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)"><span class="doc_name">${escapeForHTML(tag.tagFull)}</span></a>`, false);
+        html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(tag.tagFull)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(tag.tagFull)}</span></a>`, false);
         html += tableLine('default', 'Async Safety', `${tagAsync.badgeHtml} <span class="text-xs text-slate-500 dark:text-slate-400 ml-1.5 align-middle">${escapeForHTML(tagAsync.descriptionText)}</span>`, false);
         const returnBase = tag.returns ? tag.returns.split('(')[0] : '';
-        html += tableLine('default tr-returns', 'Returns', `<a href="/Docs/ObjectTypes/${escapeForHTML(returnBase)}">${escapeForHTML(tag.returns)}</a>`, false);
+        html += tableLine('default tr-returns', 'Returns', `<a href="/Docs/ObjectTypes/${encodeURIComponent(returnBase.toLowerCase())}">${escapeForHTML(tag.returns)}</a>`, false);
         if (tag.mechanism) {
           html += tableLine('default', 'Mechanism', `<a href="/Docs/Mechanisms/${urlSafe(tag.mechanism)}">${escapeForHTML(tag.mechanism)}</a>`, false);
         }
@@ -1143,7 +1152,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
 
       case 'Event': {
         const evt = obj as MetaEventObject;
-        html += tableLine('primary', 'Name', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)"><span class="doc_name">${escapeForHTML(evt.cleanName)}</span></a>`, false);
+        html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr('on ' + evt.cleanName + ':')}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(evt.cleanName)}</span></a>`, false);
         html += tableLine('secondary', 'Event Lines', evt.events.map(generateEventExplainer).join('\n<br>'), false);
         html += tableLine('default', 'Triggers', evt.triggers, true);
         for (const example of evt.examples) {
@@ -1182,8 +1191,8 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
 
       case 'Mechanism': {
         const mech = obj as MetaMechanismObject;
-        html += tableLine('primary', 'Name', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)"><span class="doc_name">${escapeForHTML(mech.mechName)}</span></a>`, false);
-        html += tableLine('default', 'Object', `<a href="/Docs/ObjectTypes/${escapeForHTML(mech.mechObject)}">${escapeForHTML(mech.mechObject)}</a>`, false);
+        html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(mech.mechName)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(mech.mechName)}</span></a>`, false);
+        html += tableLine('default', 'Object', `<a href="/Docs/ObjectTypes/${encodeURIComponent(mech.mechObject.toLowerCase())}">${escapeForHTML(mech.mechObject)}</a>`, false);
         html += tableLine('default', 'Input', mech.input, true);
         html += tableLine('default', 'Related Tags', htmlizeTags(mech.tags, tagLookup), false);
         html += tableLine('default', 'Description', mech.description, true);
@@ -1208,7 +1217,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
         } else {
           fullNameText = `<span class="doc_name">${escapeForHTML(act.name)}</span>`;
         }
-        html += tableLine('primary', 'Action Lines', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)">${fullNameText}</a>`, false);
+        html += tableLine('primary', 'Action Lines', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(act.name + ':')}" class="doc-anchor-link">${fullNameText}</a>`, false);
         html += tableLine('default', 'Triggers', act.triggers, true);
         html += tableLine('default', 'Contexts', htmlizeTags(act.context, tagLookup), false);
         html += tableLine('default', 'Determine', act.determinations.join('\n'), true);
@@ -1217,7 +1226,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
 
       case 'Language': {
         const lang = obj as MetaLanguageObject;
-        html += tableLine('primary', 'Name', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)"><span class="doc_name">${escapeForHTML(lang.name)}</span></a>`, false);
+        html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(lang.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(lang.name)}</span></a>`, false);
         html += tableLine('default', 'Description', lang.description, true);
         break;
       }
@@ -1225,9 +1234,21 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
       case 'ObjectType': {
         const ot = obj as MetaObjectTypeObject;
         const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
-        const linkObjType = (targetName: string) => `<a href="/Docs/ObjectTypes/${escapeForHTML(targetName.toLowerCase())}">${escapeForHTML(targetName)}</a>`;
-        html += tableLine('primary', 'Name', `<a id="${aID}" href="#${aID}" onclick="doFlashFor('${aID}', event)"><span class="doc_name">${escapeForHTML(ot.name)}</span></a>`, false);
+        const linkObjType = (targetName: string) => `<a href="/Docs/ObjectTypes/${encodeURIComponent(targetName.toLowerCase())}">${escapeForHTML(targetName)}</a>`;
+        html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(ot.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(ot.name)}</span></a>`, false);
         html += tableLine('default', 'Async Support', `${otAsync.badgeHtml} <span class="text-xs text-slate-500 dark:text-slate-400 ml-1.5 align-middle">${escapeForHTML(otAsync.descriptionText)}</span>`, false);
+        const tCount = tagCountByType.get(ot.cleanName) || 0;
+        const mCount = mechCountByType.get(ot.cleanName) || 0;
+        if (tCount > 0 || mCount > 0) {
+          const links: string[] = [];
+          if (tCount > 0) {
+            links.push(`<a href="/Docs/Tags#${encodeURIComponent(ot.cleanName)}" class="obj-crosslink-badge">${tCount} ${escapeForHTML(ot.name)} ${tCount === 1 ? 'Tag' : 'Tags'} &rarr;</a>`);
+          }
+          if (mCount > 0) {
+            links.push(`<a href="/Docs/Mechanisms#${encodeURIComponent(ot.cleanName + ' mechanisms')}" class="obj-crosslink-badge">${mCount} ${escapeForHTML(ot.name)} ${mCount === 1 ? 'Mechanism' : 'Mechanisms'} &rarr;</a>`);
+          }
+          html += tableLine('default', 'Members', links.join(' '), false);
+        }
         html += tableLine('default', 'Prefix', ot.prefix === 'none' ? 'None' : `${ot.prefix}@`, true);
         if (ot.baseTypeName && ot.baseTypeName.toLowerCase() !== 'none') {
           html += tableLine('default', 'Base Type', linkObjType(ot.baseTypeName), false);
@@ -1294,5 +1315,125 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
     allObjects: sortedAll,
     loadErrors,
     lastReload: new Date().toISOString(),
+  };
+}
+
+const STRIPPED_OBJECT_KEYS = new Set([
+  'rawValues',
+  'parsedFormatParts',
+  'overlyCleanedEvents',
+  'cleanActions',
+  'examples',
+  'usages',
+  'context',
+  'determinations',
+  'generatedReturnUsageExample',
+]);
+
+function stripBuildOnlyFields<T extends BaseMetaObject>(rec: Record<string, T>): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const [k, v] of Object.entries(rec)) {
+    const slim: Record<string, unknown> = {};
+    for (const [prop, val] of Object.entries(v)) {
+      if (STRIPPED_OBJECT_KEYS.has(prop)) continue;
+      if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) continue;
+      slim[prop] = val;
+    }
+    out[k] = slim as T;
+  }
+  return out;
+}
+
+/**
+ * Serializes MetaDocsData without duplicating all 3,978 objects inside `allObjects`
+ * and strips build-time-only fields that are already baked into `htmlContent` / `searchHelper`.
+ */
+export function serializeMetaDocs(docs: MetaDocsData): string {
+  return JSON.stringify({
+    commands: stripBuildOnlyFields(docs.commands),
+    tags: stripBuildOnlyFields(docs.tags),
+    events: stripBuildOnlyFields(docs.events),
+    mechanisms: stripBuildOnlyFields(docs.mechanisms),
+    actions: stripBuildOnlyFields(docs.actions),
+    languages: stripBuildOnlyFields(docs.languages),
+    objectTypes: stripBuildOnlyFields(docs.objectTypes),
+    loadErrors: docs.loadErrors,
+    lastReload: docs.lastReload,
+  });
+}
+
+function normalizeLoadedObject<T extends BaseMetaObject>(obj: T): T {
+  if (!obj.synonyms) obj.synonyms = [];
+  if (!obj.warnings) obj.warnings = [];
+  if (!obj.group) obj.group = '';
+  if (!obj.groupingString) obj.groupingString = '';
+  if (!obj.searchHelper) {
+    obj.searchHelper = { perfectMatches: [], synonyms: [], strongs: [], decents: [], backups: [] };
+  } else {
+    if (!obj.searchHelper.perfectMatches) obj.searchHelper.perfectMatches = [];
+    if (!obj.searchHelper.synonyms) obj.searchHelper.synonyms = [];
+    if (!obj.searchHelper.strongs) obj.searchHelper.strongs = [];
+    if (!obj.searchHelper.decents) obj.searchHelper.decents = [];
+    if (!obj.searchHelper.backups) obj.searchHelper.backups = [];
+  }
+  if (obj.type === 'Event' && !(obj as unknown as MetaEventObject).cleanEvents) {
+    (obj as unknown as MetaEventObject).cleanEvents = [];
+  }
+  return obj;
+}
+
+/**
+ * Rehydrates a parsed `denizen-meta.json` payload in memory, sharing object references
+ * between per-kind dictionaries and `allObjects`.
+ */
+export function hydrateMetaDocs(raw: Partial<MetaDocsData>): MetaDocsData {
+  const commands = raw.commands || {};
+  const tags = raw.tags || {};
+  const events = raw.events || {};
+  const mechanisms = raw.mechanisms || {};
+  const actions = raw.actions || {};
+  const languages = raw.languages || {};
+  const objectTypes = raw.objectTypes || {};
+
+  const dicts = [commands, tags, events, mechanisms, actions, languages, objectTypes];
+  const combined: AnyMetaObject[] = [];
+  for (const dict of dicts) {
+    for (const item of Object.values(dict)) {
+      combined.push(normalizeLoadedObject(item as AnyMetaObject));
+    }
+  }
+
+  combined.sort((a, b) => {
+    const aPlugin = a.plugin ? 1 : 0;
+    const bPlugin = b.plugin ? 1 : 0;
+    if (aPlugin !== bPlugin) return aPlugin - bPlugin;
+
+    const aWarn = a.warnings ? a.warnings.length : 0;
+    const bWarn = b.warnings ? b.warnings.length : 0;
+    if (aWarn !== bWarn) return aWarn - bWarn;
+
+    const aGroup = a.group || '';
+    const bGroup = b.group || '';
+    if (aGroup !== bGroup) {
+      if (!aGroup) return -1;
+      if (!bGroup) return 1;
+      const grpCmp = aGroup.localeCompare(bGroup);
+      if (grpCmp !== 0) return grpCmp;
+    }
+
+    return a.cleanName.localeCompare(b.cleanName);
+  });
+
+  return {
+    commands,
+    tags,
+    events,
+    mechanisms,
+    actions,
+    languages,
+    objectTypes,
+    allObjects: combined,
+    loadErrors: raw.loadErrors || [],
+    lastReload: raw.lastReload || '0',
   };
 }

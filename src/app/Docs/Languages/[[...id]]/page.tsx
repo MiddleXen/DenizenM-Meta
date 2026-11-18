@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { loadDocPage } from '@/lib/doc-pages';
+import { buildDocPageMetadata, loadDocPage } from '@/lib/doc-pages';
 import { fixID } from '@/lib/util';
 import { DocPageLayout } from '@/components/DocPageLayout';
 
@@ -10,12 +10,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id: idParts } = await params;
   const id = fixID(idParts ? idParts.join('/') : null);
-  const title = (id ? `Search '${id}' | ` : '') + 'Language Explanations | DenizenM Meta Documentation';
-  const desc = id ? `Language Explanation search for '${id}'` : 'Language Explanation List';
-  return {
-    title,
-    description: desc,
-  };
+  return buildDocPageMetadata('Languages', id, 'Language Explanations');
 }
 
 export default async function LanguagesPage({ params }: PageProps) {
@@ -28,9 +23,8 @@ export default async function LanguagesPage({ params }: PageProps) {
       title="DenizenM Languages"
       description={
         <>
-          <br />
-          Language Explanations explain components of DenizenM in a more direct and technical way than{' '}
-          <a href="https://guide.denizenscript.com/">The Beginner&apos;s Guide</a>.
+          Language Explanations cover core systems, syntax rules, and architecture of DenizenM in technical detail beyond{' '}
+          <a href="https://guide.denizenscript.com/" target="_blank" rel="noreferrer">The Beginner&apos;s Guide</a>.
         </>
       }
       searchPlaceholder="Search Language Explanations..."

@@ -14,12 +14,19 @@ export function escapeForHTML(text: string): string {
   return res;
 }
 
+export function escapeHtmlAttr(text: string): string {
+  return escapeForHTML(text)
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function urlSafe(input: string): string {
   if (!input) return "";
   return input
     .replace(/</g, "%3C")
     .replace(/>/g, "%3E")
-    .replace(/"/g, "%22");
+    .replace(/"/g, "%22")
+    .replace(/'/g, "%27");
 }
 
 export function escapeQuickSimple(content: string): string {
@@ -53,5 +60,9 @@ export function cleanTag(text: string): string {
 
 export function fixID(id: string | null | undefined): string | null {
   if (!id) return null;
-  return decodeURIComponent(id).toLowerCase().replace(/\+/g, " ").replace(/%2f/gi, "/");
+  try {
+    return decodeURIComponent(id).toLowerCase().replace(/\+/g, " ").replace(/%2f/gi, "/");
+  } catch {
+    return id.toLowerCase().replace(/\+/g, " ").replace(/%2f/gi, "/");
+  }
 }

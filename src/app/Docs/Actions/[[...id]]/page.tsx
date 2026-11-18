@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { loadDocPage } from '@/lib/doc-pages';
+import { buildDocPageMetadata, loadDocPage } from '@/lib/doc-pages';
 import { fixID } from '@/lib/util';
 import { DocPageLayout } from '@/components/DocPageLayout';
 
@@ -10,12 +10,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id: idParts } = await params;
   const id = fixID(idParts ? idParts.join('/') : null);
-  const title = (id ? `Search '${id}' | ` : '') + 'NPC Actions | DenizenM Meta Documentation';
-  const desc = id ? `NPC Action search for '${id}'` : 'NPC Action List';
-  return {
-    title,
-    description: desc,
-  };
+  return buildDocPageMetadata('Actions', id, 'NPC Actions');
 }
 
 export default async function ActionsPage({ params }: PageProps) {
@@ -28,11 +23,8 @@ export default async function ActionsPage({ params }: PageProps) {
       title="DenizenM NPC Actions"
       description={
         <>
-          <br />
-          NPC Actions go in &apos;assignment&apos; scripts, and work like &apos;events&apos; but linked to the assigned NPC.
-          <br />
-          Learn about how NPC Actions work in{' '}
-          <a href="https://guide.denizenscript.com/">The Beginner&apos;s Guide</a>.
+          NPC Actions go in <code>assignment</code> scripts and work like events linked directly to the assigned Citizens NPC.{' '}
+          Learn more in <a href="https://guide.denizenscript.com/" target="_blank" rel="noreferrer">The Beginner&apos;s Guide</a>.
         </>
       }
       searchPlaceholder="Search Actions..."

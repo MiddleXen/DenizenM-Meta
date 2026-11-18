@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { loadDocPage } from '@/lib/doc-pages';
+import { buildDocPageMetadata, loadDocPage } from '@/lib/doc-pages';
 import { fixID } from '@/lib/util';
 import { DocPageLayout } from '@/components/DocPageLayout';
 
@@ -10,12 +10,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id: idParts } = await params;
   const id = fixID(idParts ? idParts.join('/') : null) || '';
-  return {
-    title: id ? `Search '${id}' | DenizenM Meta Documentation` : 'Search | DenizenM Meta Documentation',
-    description: id
-      ? `Search results for '${id}' across all DenizenM meta documentation`
-      : 'Search across all DenizenM meta documentation',
-  };
+  return buildDocPageMetadata('Search', id || null, 'Global Search');
 }
 
 export default async function SearchPage({ params }: PageProps) {

@@ -14,6 +14,17 @@ export const metadata: Metadata = {
   title: 'DenizenM Meta Documentation',
   description: 'Fast, high-performance meta-documentation explorer for DenizenM script commands, tags, events, mechanisms, and object types.',
   keywords: ['DenizenM', 'Denizen', 'DenizenScript', 'Minecraft', 'Scripting', 'Tags', 'Commands', 'Mechanisms', 'Events'],
+  openGraph: {
+    title: 'DenizenM Meta Documentation',
+    description: 'Fast, high-performance meta-documentation explorer for DenizenM script commands, tags, events, mechanisms, and object types.',
+    siteName: 'DenizenM Meta Documentation',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'DenizenM Meta Documentation',
+    description: 'Fast, high-performance meta-documentation explorer for DenizenM script commands, tags, events, mechanisms, and object types.',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -48,12 +59,6 @@ export default async function RootLayout({
     <html lang="en" className={htmlClass} data-theme={initialTheme} suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="dark light" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
       </head>
       <body className="min-h-screen flex flex-col antialiased selection:bg-emerald-500/20 selection:text-emerald-400">
         <ThemeProvider initialTheme={initialTheme}>
@@ -62,7 +67,7 @@ export default async function RootLayout({
           </Suspense>
           <SearchProvider>
             <Navbar />
-            <main className="flex-1 w-full relative z-10">
+            <main className="flex-1 w-full flex flex-col relative z-10">
               {children}
             </main>
             <Footer />

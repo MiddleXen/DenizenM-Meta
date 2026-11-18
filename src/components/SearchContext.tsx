@@ -15,29 +15,22 @@ const SearchContext = createContext<SearchContextType>({
   triggerSearch: () => {},
 });
 
-const DOC_FILTER_PATH = /^\/Docs\/[^/]+\/[^/]+/i;
-
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname.startsWith('/Docs/Search/')) {
-      const parts = pathname.replace('/Docs/Search/', '').split('/');
-      if (parts[0]) {
+    if (pathname.toLowerCase().startsWith('/docs/search/')) {
+      const rest = pathname.slice('/Docs/Search/'.length);
+      if (rest) {
         try {
-          const decoded = decodeURIComponent(parts[0]);
-          setSearchValue(decoded);
+          setSearchValue(decodeURIComponent(rest));
         } catch {
-          // ignore
+          setSearchValue(rest);
         }
       }
-    } else if (!DOC_FILTER_PATH.test(pathname)) {
-      // Clear search input when leaving search or reloading other pages.
-      // Filtered doc pages (`/Docs/<Kind>/<filter>`) are skipped: their DocSearchBar puts the filter
-      // into the input from its own effect, and child effects run *before* this one, so clearing
-      // here would wipe the value it just set.
+    } else {
       setSearchValue('');
     }
   }, [pathname]);
@@ -46,15 +39,15 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     const raw = overrideVal !== undefined ? overrideVal : searchValue;
     const trimmed = raw.trim();
     if (!trimmed) {
-      // Do nothing on empty search - do not redirect to 'Nothing'
       return;
     }
+    window.dispatchEvent(new CustomEvent('agy:nav-start'));
     router.push(`/Docs/Search/${encodeURIComponent(trimmed)}`);
   }, [searchValue, router]);
 
   const value = useMemo(
     () => ({ searchValue, setSearchValue, triggerSearch }),
-    [searchValue, triggerSearch],
+    [searchValue, triggerSearch]
   );
 
   return (

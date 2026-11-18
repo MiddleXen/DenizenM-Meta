@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import { useSearchContext } from './SearchContext';
 import { Search, ChevronDown, Check, Menu, X, BookOpen } from 'lucide-react';
@@ -28,15 +28,28 @@ function DiscordIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { searchValue, setSearchValue, triggerSearch } = useSearchContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileActiveIndex, setMobileActiveIndex] = useState(-1);
+
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const desktopInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setMobileSearchOpen(false);
+    setIsSearchOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -46,10 +59,33 @@ export function Navbar() {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setIsSearchOpen(false);
       }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+        setMobileSearchOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Global Ctrl+K / Cmd+K shortcut on all non-Home pages (HomeSearch handles '/')
+  useEffect(() => {
+    if (pathname === '/') return;
+    const handleGlobalCtrlK = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        preloadSuggestions();
+        if (window.innerWidth >= 768 && desktopInputRef.current) {
+          desktopInputRef.current.focus();
+          desktopInputRef.current.select();
+        } else {
+          setMobileMenuOpen(true);
+          setTimeout(() => mobileInputRef.current?.focus(), 40);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalCtrlK);
+    return () => window.removeEventListener('keydown', handleGlobalCtrlK);
+  }, [pathname]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
@@ -62,6 +98,7 @@ export function Navbar() {
     } else if (e.key === 'Escape') {
       setIsSearchOpen(false);
       setSearchActiveIndex(-1);
+      desktopInputRef.current?.blur();
     } else if (e.key === 'Enter') {
       setIsSearchOpen(false);
       const trimmed = searchValue.trim();
@@ -69,6 +106,28 @@ export function Navbar() {
       triggerSearch();
     }
   };
+
+  const handleMobileSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMobileSearchOpen(true);
+      setMobileActiveIndex((prev) => prev + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMobileActiveIndex((prev) => (prev > -1 ? prev - 1 : -1));
+    } else if (e.key === 'Escape') {
+      setMobileSearchOpen(false);
+      setMobileActiveIndex(-1);
+    } else if (e.key === 'Enter') {
+      setMobileSearchOpen(false);
+      setMobileMenuOpen(false);
+      const trimmed = searchValue.trim();
+      if (!trimmed) return;
+      triggerSearch();
+    }
+  };
+
+  const lowerPath = pathname.toLowerCase();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 dark:bg-[#0a0d12]/95 backdrop-blur-sm border-b border-slate-200/90 dark:border-white/10 will-change-transform">
@@ -87,7 +146,7 @@ export function Navbar() {
           {/* Desktop Nav Links */}
           <nav className="hidden xl:flex items-center gap-1">
             {NAV_LINKS.map((link) => {
-              const isActive = pathname.startsWith(link.href);
+              const isActive = lowerPath.startsWith(link.href.toLowerCase());
               return (
                 <Link
                   key={link.href}
@@ -122,7 +181,6 @@ export function Navbar() {
                     Select Theme
                   </div>
 
-                  {/* 1. Pitch Black */}
                   <button
                     type="button"
                     onClick={() => {
@@ -142,7 +200,6 @@ export function Navbar() {
                     {theme === 'black' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
                   </button>
 
-                  {/* 2. Emerald */}
                   <button
                     type="button"
                     onClick={() => {
@@ -162,7 +219,6 @@ export function Navbar() {
                     {theme === 'dark' && <Check className="w-3.5 h-3.5 text-[#00bc8c]" />}
                   </button>
 
-                  {/* 3. Graphite Dark */}
                   <button
                     type="button"
                     onClick={() => {
@@ -184,7 +240,6 @@ export function Navbar() {
 
                   <div className="my-1 border-t border-slate-200 dark:border-white/10" />
 
-                  {/* 4. Light */}
                   <button
                     type="button"
                     onClick={() => {
@@ -213,8 +268,9 @@ export function Navbar() {
             <div className="hidden md:block relative w-full max-w-xs z-[999]" ref={searchContainerRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               <input
+                ref={desktopInputRef}
                 type="text"
-                placeholder="Search meta..."
+                placeholder="Search all meta..."
                 value={searchValue}
                 autoComplete="off"
                 autoCorrect="off"
@@ -226,12 +282,37 @@ export function Navbar() {
                   setSearchActiveIndex(-1);
                 }}
                 onFocus={() => {
+                  setIsSearchFocused(true);
                   preloadSuggestions();
                   if (searchValue.trim()) setIsSearchOpen(true);
                 }}
+                onBlur={() => setIsSearchFocused(false)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-8.5 pr-3 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
+                className="w-full pl-8.5 pr-14 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
               />
+              {searchValue ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchValue('');
+                    setIsSearchOpen(false);
+                    desktopInputRef.current?.focus();
+                  }}
+                  aria-label="Clear global search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              ) : (
+                !isSearchFocused && (
+                  <kbd
+                    aria-hidden="true"
+                    className="hidden lg:inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 h-4.5 px-1.5 rounded bg-white/80 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9.5px] text-slate-400 pointer-events-none select-none"
+                  >
+                    Ctrl K
+                  </kbd>
+                )
+              )}
 
               <SearchAutocomplete
                 query={searchValue}
@@ -264,6 +345,22 @@ export function Navbar() {
               </a>
             </div>
 
+            {/* Mobile global search button */}
+            {pathname !== '/' && (
+              <button
+                type="button"
+                onClick={() => {
+                  preloadSuggestions();
+                  setMobileMenuOpen(true);
+                  setTimeout(() => mobileInputRef.current?.focus(), 40);
+                }}
+                aria-label="Open global search"
+                className="md:hidden relative w-8.5 h-8.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Mobile menu toggle button */}
             <button
               type="button"
@@ -279,13 +376,64 @@ export function Navbar() {
         {/* Mobile Dropdown Nav */}
         {mobileMenuOpen && (
           <div className="xl:hidden border-t border-slate-200 dark:border-white/10 py-3.5 flex flex-col gap-3.5">
+            {/* Global Search inside Mobile Menu */}
+            <div className="md:hidden relative z-[999]" ref={mobileSearchRef}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                ref={mobileInputRef}
+                type="text"
+                placeholder="Search all meta documentation..."
+                value={searchValue}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setMobileSearchOpen(true);
+                  setMobileActiveIndex(-1);
+                }}
+                onFocus={() => {
+                  preloadSuggestions();
+                  if (searchValue.trim()) setMobileSearchOpen(true);
+                }}
+                onKeyDown={handleMobileSearchKeyDown}
+                className="w-full pl-9 pr-8 py-2 rounded-lg text-sm bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              {searchValue && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchValue('');
+                    setMobileSearchOpen(false);
+                    mobileInputRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
+              <SearchAutocomplete
+                query={searchValue}
+                isOpen={mobileSearchOpen}
+                onClose={() => {
+                  setMobileSearchOpen(false);
+                  setMobileMenuOpen(false);
+                }}
+                activeIndex={mobileActiveIndex}
+                setActiveIndex={setMobileActiveIndex}
+              />
+            </div>
+
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                 Navigation
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {NAV_LINKS.map((link) => {
-                  const isActive = pathname.startsWith(link.href);
+                  const isActive = lowerPath.startsWith(link.href.toLowerCase());
                   return (
                     <Link
                       key={link.href}

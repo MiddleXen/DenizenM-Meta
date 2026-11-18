@@ -9,13 +9,11 @@ export function NavigationProgressBar() {
   const [complete, setComplete] = useState(false);
   const isFirstRender = useRef(true);
 
-  // When pathname changes (navigation completed)
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    // Complete the bar cleanly
     setComplete(true);
     const timer = setTimeout(() => {
       setActive(false);
@@ -25,8 +23,12 @@ export function NavigationProgressBar() {
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  // Start progress on internal link clicks and popstate
   useEffect(() => {
+    const startBar = () => {
+      setComplete(false);
+      setActive(true);
+    };
+
     const handleAnchorClick = (e: MouseEvent) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
 
@@ -43,8 +45,7 @@ export function NavigationProgressBar() {
             url.pathname !== window.location.pathname ||
             (url.search && url.search !== window.location.search)
           ) {
-            setComplete(false);
-            setActive(true);
+            startBar();
           }
         }
       } catch {
@@ -52,17 +53,14 @@ export function NavigationProgressBar() {
       }
     };
 
-    const handlePopState = () => {
-      setComplete(false);
-      setActive(true);
-    };
-
     window.addEventListener('click', handleAnchorClick, true);
-    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', startBar);
+    window.addEventListener('agy:nav-start', startBar);
 
     return () => {
       window.removeEventListener('click', handleAnchorClick, true);
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('popstate', startBar);
+      window.removeEventListener('agy:nav-start', startBar);
     };
   }, []);
 
@@ -75,8 +73,9 @@ export function NavigationProgressBar() {
       aria-hidden="true"
     >
       <div
-        className="h-full bg-emerald-500 dark:bg-emerald-400"
+        className="h-full"
         style={{
+          backgroundColor: 'var(--accent-primary)',
           width: complete ? '100%' : '75%',
           transition: complete
             ? 'width 0.15s ease-out'

@@ -1,6 +1,5 @@
 /**
  * Flasher and smooth scroll utility for Denizen Meta documentation
- * Converted to native TypeScript module
  */
 
 declare global {
@@ -11,8 +10,9 @@ declare global {
 }
 
 /** Offset so the table header is cleanly below the sticky top navbar. */
-const NAVBAR_OFFSET = 70;
+const NAVBAR_OFFSET = 72;
 let scrollToken = 0;
+let pendingFlashId: string | null = null;
 
 function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -27,11 +27,36 @@ function targetTop(target: HTMLElement): number {
   return Math.max(0, target.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0) - NAVBAR_OFFSET);
 }
 
+function safeDecode(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+export function resolveAnchorElement(rawId: string): HTMLElement | null {
+  if (!rawId || typeof document === 'undefined') return null;
+  const decoded = safeDecode(rawId);
+  const encoded = encodeURIComponent(decoded);
+
+  return (
+    document.getElementById(rawId) ||
+    document.getElementById(decoded) ||
+    document.getElementById(encoded) ||
+    document.getElementById(`category-${decoded}`) ||
+    document.getElementById(`category-${encoded}`)
+  );
+}
+
 /** If the user starts scrolling manually during a programmatic glide, stop immediately. */
 function attachUserAbort(token: number, startedAt: number): () => void {
   const cancel = () => {
     if (performance.now() - startedAt < 24) return;
-    if (token === scrollToken) scrollToken++;
+    if (token === scrollToken) {
+      scrollToken++;
+      pendingFlashId = null;
+    }
   };
   const userEvents = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const;
   userEvents.forEach((type) => window.addEventListener(type, cancel, { once: true, passive: true }));
@@ -50,7 +75,7 @@ function unlockNearbyCards(target: HTMLElement): () => void {
       unlocked.push(el);
     }
   };
-  const anchorBox = target.closest('.doc-card') || target.closest('.category_title') || target;
+  const anchorBox = target.closest('.doc-card') || target.closest('.category_header_block') || target.closest('.category_title') || target;
   unlock(anchorBox);
   let prev = anchorBox.previousElementSibling;
   for (let i = 0; i < 10 && prev; i++, prev = prev.previousElementSibling) unlock(prev);
@@ -64,14 +89,9 @@ function unlockNearbyCards(target: HTMLElement): () => void {
   };
 }
 
-/**
- * Smoothly scrolls back to `top: 0` without showing blank background on huge pages (Tags is ~900k px).
- * Native `behavior: 'smooth'` across 100k+ px moves faster than GPU tile rasterization and
- * `content-visibility` unlocking, producing empty frames. Instead we step into the already-rendered
- * top region and glide the final ~2.4 viewports via `requestAnimationFrame`.
- */
 export function smoothScrollToTop(): void {
   if (typeof window === 'undefined') return;
+  pendingFlashId = null;
   const token = ++scrollToken;
   let startY = window.scrollY || window.pageYOffset || 0;
   if (startY <= 0) return;
@@ -163,41 +183,83 @@ function scrollToTarget(target: HTMLElement): void {
   requestAnimationFrame(step);
 }
 
-export function doFlashFor(elementId: string, e?: Event | React.MouseEvent | MouseEvent): void {
+function flashAndScrollElement(flashable: HTMLElement): void {
+  // Unhide if target happens to be inside a collapsed related-matches section
+  const hiddenParent = flashable.closest('.related-matches-body[hidden]') as HTMLElement | null;
+  if (hiddenParent) {
+    hiddenParent.hidden = false;
+  }
+
+  const target = (flashable.closest('table') || flashable) as HTMLElement;
+  target.classList.remove('flash');
+  void target.offsetWidth;
+  target.classList.add('flash');
+
+  scrollToTarget(target);
+}
+
+export function doFlashFor(
+  elementId: string,
+  e?: Event | React.MouseEvent | MouseEvent,
+  updateHash = true
+): void {
   if (e && 'preventDefault' in e && typeof e.preventDefault === 'function') {
     e.preventDefault();
-  } else if (typeof window !== 'undefined' && (window as unknown as { event?: { preventDefault?: () => void } }).event?.preventDefault) {
-    (window as unknown as { event?: { preventDefault?: () => void } }).event?.preventDefault?.();
   }
 
   if (!elementId || typeof document === 'undefined') return;
-  const flashable = document.getElementById(elementId);
-  if (!flashable) return;
+  const decoded = safeDecode(elementId);
 
-  // Find nearest table card or element itself
-  const target = flashable.closest('table') || flashable;
-
-  target.classList.remove('flash');
-  // Trigger DOM reflow to restart CSS animation
-  void (target as HTMLElement).offsetWidth;
-  target.classList.add('flash');
-
-  scrollToTarget(target as HTMLElement);
-
-  // Update hash in URL without triggering native browser jump
-  if (window.history && window.history.pushState) {
-    window.history.pushState(null, '', '#' + elementId);
+  // Always update URL hash immediately so even deferred DocRestLoader chunks know where to jump.
+  if (updateHash && window.history && window.history.pushState) {
+    const cleanHash = '#' + encodeURIComponent(decoded);
+    if (window.location.hash !== cleanHash) {
+      window.history.pushState(null, '', cleanHash);
+    }
   }
+
+  const flashable = resolveAnchorElement(decoded);
+  if (!flashable) {
+    // Target may still be streaming in via DocRestLoader; queue it for immediate resolution.
+    pendingFlashId = decoded;
+    return;
+  }
+
+  pendingFlashId = null;
+  flashAndScrollElement(flashable);
+}
+
+/**
+ * Called by DocRestLoader as chunks arrive so clicking a category chip or opening a deep `#hash`
+ * jumps as soon as that card/category enters the DOM instead of failing silently.
+ */
+export function tryFlushPendingFlash(): boolean {
+  if (typeof window === 'undefined') return false;
+  const candidate =
+    pendingFlashId ||
+    (window.location.hash.length > 1 ? safeDecode(window.location.hash.slice(1)) : null);
+  if (!candidate) return false;
+
+  const el = resolveAnchorElement(candidate);
+  if (!el) return false;
+
+  pendingFlashId = null;
+  flashAndScrollElement(el);
+  return true;
+}
+
+export function clearPendingFlash(): void {
+  pendingFlashId = null;
 }
 
 export function autoflash(): void {
   if (typeof window === 'undefined') return;
   const hash = window.location.hash;
   if (!hash || hash.length < 2) return;
-  const targetId = decodeURIComponent(hash.substring(1));
+  const targetId = safeDecode(hash.substring(1));
   setTimeout(() => {
-    doFlashFor(targetId);
-  }, 100);
+    doFlashFor(targetId, undefined, false);
+  }, 60);
 }
 
 export function initFlasher(): () => void {
@@ -207,7 +269,7 @@ export function initFlasher(): () => void {
   window.autoflash = autoflash;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoflash);
+    document.addEventListener('DOMContentLoaded', autoflash, { once: true });
   } else {
     autoflash();
   }

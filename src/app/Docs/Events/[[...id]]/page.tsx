@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { loadDocPage } from '@/lib/doc-pages';
+import { buildDocPageMetadata, loadDocPage } from '@/lib/doc-pages';
 import { fixID } from '@/lib/util';
 import { DocPageLayout } from '@/components/DocPageLayout';
 
@@ -10,12 +10,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id: idParts } = await params;
   const id = fixID(idParts ? idParts.join('/') : null);
-  const title = (id ? `Search '${id}' | ` : '') + 'Events | DenizenM Meta Documentation';
-  const desc = id ? `Event search for '${id}'` : 'Event List';
-  return {
-    title,
-    description: desc,
-  };
+  return buildDocPageMetadata('Events', id, 'Events');
 }
 
 export default async function EventsPage({ params }: PageProps) {
@@ -28,11 +23,8 @@ export default async function EventsPage({ params }: PageProps) {
       title="DenizenM Events"
       description={
         <>
-          <br />
-          Events are a way to listen to things that happened on your server and respond to them through a script. These usually pair with &apos;world&apos; script containers.
-          <br />
-          Learn about how events work in{' '}
-          <a href="https://guide.denizenscript.com/">The Beginner&apos;s Guide</a>.
+          Events listen to things happening on your server and respond through <code>world</code> script containers.{' '}
+          Learn more in <a href="https://guide.denizenscript.com/" target="_blank" rel="noreferrer">The Beginner&apos;s Guide</a>.
         </>
       }
       searchPlaceholder="Search Events..."

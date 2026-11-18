@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { loadDocPage } from '@/lib/doc-pages';
+import { buildDocPageMetadata, loadDocPage } from '@/lib/doc-pages';
 import { fixID } from '@/lib/util';
 import { DocPageLayout } from '@/components/DocPageLayout';
 
@@ -10,12 +10,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id: idParts } = await params;
   const id = fixID(idParts ? idParts.join('/') : null);
-  const title = (id ? `Search '${id}' | ` : '') + 'Tags | DenizenM Meta Documentation';
-  const desc = id ? `Tag search for '${id}'` : 'Tag List';
-  return {
-    title,
-    description: desc,
-  };
+  return buildDocPageMetadata('Tags', id, 'Tags');
 }
 
 export default async function TagsPage({ params }: PageProps) {
@@ -28,13 +23,8 @@ export default async function TagsPage({ params }: PageProps) {
       title="DenizenM Tags"
       description={
         <>
-          <br />
-          Tags are always written with a &lt;between these marks&gt;, and are critical to scripts,
-          <br />
-          as the primary way to read data.
-          <br />
-          Learn about how tags work in{' '}
-          <a href="https://guide.denizenscript.com/">The Beginner&apos;s Guide</a>.
+          Tags are written <code>&lt;between these marks&gt;</code> and are critical to scripts as the primary way to read data and compute values.{' '}
+          Learn more in <a href="https://guide.denizenscript.com/" target="_blank" rel="noreferrer">The Beginner&apos;s Guide</a>.
         </>
       }
       searchPlaceholder="Search Tags..."

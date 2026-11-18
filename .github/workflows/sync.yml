@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Trigger Vercel Deploy Hook
         env:
-          HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK || 'https://api.vercel.com/v1/integrations/deploy/prj_dr0a9P75pnoQccjTQgjAMlj31QjZ/Xehq0KepWK' }}
+          HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
+          if [ -z "$HOOK_URL" ]; then
+            echo "VERCEL_DEPLOY_HOOK secret is not configured; skipping deploy trigger."
+            exit 0
+          fi
           curl -fsSL -X POST "$HOOK_URL"

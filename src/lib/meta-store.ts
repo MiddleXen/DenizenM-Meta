@@ -1,14 +1,31 @@
 import fs from 'fs';
+import fsp from 'fs/promises';
 import path from 'path';
 import {
   AnyMetaObject,
+  AsyncFilterCounts,
   BaseMetaObject,
   DocViewModel,
   MetaDocsData,
   MetaEventObject,
+  MetaObjectTypeObject,
+  MetaTagObject,
+  PluginFilterOption,
 } from './types';
-import { getMatchQuality, loadAllMetaDocs, DEFAULT_SOURCES } from './meta-loader';
-import { escapeForHTML } from './util';
+import {
+  getMatchQuality,
+  hydrateMetaDocs,
+  loadAllMetaDocs,
+  serializeMetaDocs,
+  DEFAULT_SOURCES,
+} from './meta-loader';
+import {
+  getCommandAsyncStatus,
+  getObjectTypeAsyncStatus,
+  getTagAsyncStatus,
+} from './async-safety';
+import { buildSuggestionsFromDocs, serializeSuggestions } from './suggestions';
+import { escapeForHTML, escapeHtmlAttr } from './util';
 
 const SEARCH_QUALITY_NAMES = [
   'Not Matched', // 0
@@ -25,152 +42,113 @@ const SEARCH_QUALITY_NAMES = [
 ];
 
 let globalMetaDocs: MetaDocsData | null = null;
-let globalCacheMtime = 0;
-let isLoading = false;
 let loadPromise: Promise<MetaDocsData> | null = null;
 
 const CACHE_FILE = path.join(process.cwd(), 'cache', 'meta-docs.json');
 const PRESET_FILE = path.join(process.cwd(), 'public', 'data', 'denizen-meta.json');
+const SUGGESTIONS_FILE = path.join(process.cwd(), 'public', 'data', 'search-suggestions.json');
+
+async function statMtime(filePath: string): Promise<number> {
+  try {
+    const st = await fsp.stat(filePath);
+    return st.mtimeMs;
+  } catch {
+    return 0;
+  }
+}
 
 export async function getMetaDocs(forceReload = false): Promise<MetaDocsData> {
-  // Check which file is newer between CACHE_FILE and PRESET_FILE
-  let chosenFile: string | null = null;
-  let chosenMtime = 0;
-
-  if (!forceReload) {
-    if (fs.existsSync(PRESET_FILE)) {
-      const presetMtime = fs.statSync(PRESET_FILE).mtimeMs;
-      chosenFile = PRESET_FILE;
-      chosenMtime = presetMtime;
-    }
-    if (fs.existsSync(CACHE_FILE)) {
-      const cacheMtime = fs.statSync(CACHE_FILE).mtimeMs;
-      if (!chosenFile || cacheMtime > chosenMtime) {
-        chosenFile = CACHE_FILE;
-        chosenMtime = cacheMtime;
-      }
-    }
-  }
-
-  if (chosenFile) {
-    try {
-      if (globalMetaDocs && chosenMtime <= globalCacheMtime) {
-        return globalMetaDocs;
-      }
-      const cached = JSON.parse(fs.readFileSync(chosenFile, 'utf8'));
-      globalMetaDocs = cached;
-      globalCacheMtime = chosenMtime;
-      return cached;
-    } catch (e) {
-      console.error('Failed to read meta docs file:', e);
-    }
-  }
-
+  // Fast in-memory path: zero filesystem syscalls per request once loaded.
   if (globalMetaDocs && !forceReload) {
     return globalMetaDocs;
   }
 
-  if (isLoading && loadPromise) {
+  if (loadPromise) {
     return loadPromise;
   }
 
-  loadPromise = (async () => {
-    isLoading = true;
-    try {
-      // 1. Check in-memory
-      if (globalMetaDocs && !forceReload) {
-        return globalMetaDocs;
-      }
+  const task = (async (): Promise<MetaDocsData> => {
+    if (!forceReload) {
+      const [presetMtime, cacheMtime] = await Promise.all([
+        statMtime(PRESET_FILE),
+        statMtime(CACHE_FILE),
+      ]);
+      const chosenFile =
+        cacheMtime > presetMtime && cacheMtime > 0
+          ? CACHE_FILE
+          : presetMtime > 0
+          ? PRESET_FILE
+          : null;
 
-      // 2. Try loading cached or pre-generated JSON if not forcing reload
-      if (!forceReload) {
-        if (fs.existsSync(CACHE_FILE)) {
-          try {
-            const stat = fs.statSync(CACHE_FILE);
-            const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-            const cached = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-            globalMetaDocs = cached;
-            globalCacheMtime = stat.mtimeMs;
-
-            if (Date.now() - stat.mtimeMs > CACHE_TTL_MS) {
-              console.log('Cache is older than 5 minutes, checking GitHub for new commits in background...');
-              setTimeout(() => {
-                reloadMetaDocs().catch((e) => console.error('Background auto-reload error:', e));
-              }, 1000);
-            } else {
-              console.log('Loading meta docs from fresh cache file...');
-            }
-
-            return cached;
-          } catch (e) {
-            console.error('Failed to read cache file:', e);
-          }
-        }
-        if (fs.existsSync(PRESET_FILE)) {
-          try {
-            console.log('Loading meta docs from preset file...');
-            const stat = fs.statSync(PRESET_FILE);
-            const preset = JSON.parse(fs.readFileSync(PRESET_FILE, 'utf8'));
-            globalMetaDocs = preset;
-            globalCacheMtime = stat.mtimeMs;
-            // Also trigger background check from live sources
-            setTimeout(() => {
-              reloadMetaDocs().catch((e) => console.error('Background init reload error:', e));
-            }, 1000);
-            return preset;
-          } catch (e) {
-            console.error('Failed to read preset file:', e);
-          }
-        }
-
-        // 2b. On Vercel serverless, fetch from static CDN asset if local preset was not found on disk
-        if (!globalMetaDocs && (process.env.VERCEL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL)) {
-          const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'denizen-meta-website.vercel.app';
-          const cdnUrl = host.startsWith('http') ? `${host}/data/denizen-meta.json` : `https://${host}/data/denizen-meta.json`;
-          try {
-            console.log(`Fetching pre-baked meta docs from Vercel CDN ${cdnUrl}...`);
-            const res = await fetch(cdnUrl, { cache: 'no-store' });
-            if (res.ok) {
-              const data = await res.json();
-              globalMetaDocs = data;
-              return data;
-            }
-          } catch (cdnErr) {
-            console.warn('CDN fetch fallback error:', cdnErr);
-          }
-        }
-      }
-
-      // 3. Download and parse
-      console.log('Downloading and parsing meta documentation from source...');
-      const docs = await loadAllMetaDocs(DEFAULT_SOURCES, forceReload);
-      globalMetaDocs = docs;
-
-      // Save to cache and preset
-      try {
-        const cacheDir = path.dirname(CACHE_FILE);
-        if (!fs.existsSync(cacheDir)) {
-          fs.mkdirSync(cacheDir, { recursive: true });
-        }
-        const jsonStr = JSON.stringify(docs);
-        fs.writeFileSync(CACHE_FILE, jsonStr);
-        globalCacheMtime = fs.statSync(CACHE_FILE).mtimeMs;
+      if (chosenFile) {
         try {
-          fs.writeFileSync(PRESET_FILE, jsonStr);
+          const rawStr = await fsp.readFile(chosenFile, 'utf8');
+          const hydrated = hydrateMetaDocs(JSON.parse(rawStr));
+          globalMetaDocs = hydrated;
+          return hydrated;
         } catch (e) {
-          console.error('Failed to update PRESET_FILE:', e);
+          console.error('Failed to read meta docs file:', e);
         }
-      } catch (err) {
-        console.error('Failed to write meta-docs cache:', err);
       }
 
-      return docs;
-    } finally {
-      isLoading = false;
+      // Vercel serverless CDN fallback if local file wasn't traced onto disk
+      if (process.env.VERCEL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL) {
+        const host =
+          process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+          process.env.VERCEL_URL ||
+          process.env.NEXT_PUBLIC_VERCEL_URL ||
+          'denizen-meta-website.vercel.app';
+        const cdnUrl = host.startsWith('http')
+          ? `${host}/data/denizen-meta.json`
+          : `https://${host}/data/denizen-meta.json`;
+        try {
+          const res = await fetch(cdnUrl, { cache: 'no-store' });
+          if (res.ok) {
+            const hydrated = hydrateMetaDocs(await res.json());
+            globalMetaDocs = hydrated;
+            return hydrated;
+          }
+        } catch (cdnErr) {
+          console.warn('CDN fetch fallback error:', cdnErr);
+        }
+      }
     }
+
+    // Download and parse fresh sources
+    const docs = await loadAllMetaDocs(DEFAULT_SOURCES, forceReload);
+    globalMetaDocs = docs;
+
+    // Persist asynchronously without blocking the event loop
+    try {
+      const suggestionsStr = serializeSuggestions(buildSuggestionsFromDocs(docs));
+      const jsonStr = serializeMetaDocs(docs);
+
+      await fsp.mkdir(path.dirname(CACHE_FILE), { recursive: true }).catch(() => {});
+      await fsp.writeFile(CACHE_FILE, jsonStr).catch((err) => {
+        console.warn('Could not write CACHE_FILE (read-only fs on serverless is expected):', err?.message || err);
+      });
+
+      if (fs.existsSync(path.dirname(PRESET_FILE))) {
+        await Promise.all([
+          fsp.writeFile(PRESET_FILE, jsonStr).catch(() => {}),
+          fsp.writeFile(SUGGESTIONS_FILE, suggestionsStr).catch(() => {}),
+        ]);
+      }
+    } catch (err) {
+      console.warn('Persist meta-docs warning:', err);
+    }
+
+    return docs;
   })();
 
-  return loadPromise;
+  loadPromise = task;
+  try {
+    return await task;
+  } finally {
+    if (loadPromise === task) {
+      loadPromise = null;
+    }
+  }
 }
 
 export async function reloadMetaDocs(): Promise<MetaDocsData> {
@@ -179,17 +157,14 @@ export async function reloadMetaDocs(): Promise<MetaDocsData> {
 
 export function sortMetaObjects<T extends BaseMetaObject>(list: T[]): T[] {
   return [...list].sort((a, b) => {
-    // 1. Plugin (Core without plugin comes first: 0 vs 1)
     const aPlugin = a.plugin ? 1 : 0;
     const bPlugin = b.plugin ? 1 : 0;
     if (aPlugin !== bPlugin) return aPlugin - bPlugin;
 
-    // 2. Warnings count
     const aWarn = a.warnings ? a.warnings.length : 0;
     const bWarn = b.warnings ? b.warnings.length : 0;
     if (aWarn !== bWarn) return aWarn - bWarn;
 
-    // 3. Group (null / empty first, or alphabetical)
     const aGroup = a.group || '';
     const bGroup = b.group || '';
     if (aGroup !== bGroup) {
@@ -199,98 +174,124 @@ export function sortMetaObjects<T extends BaseMetaObject>(list: T[]): T[] {
       if (grpCmp !== 0) return grpCmp;
     }
 
-    // 4. CleanName alphabetical
     return a.cleanName.localeCompare(b.cleanName);
   });
 }
 
-/**
- * Every doc entry (`<table>`) is wrapped in a block-level card. Browsers ignore `content-visibility`
- * on `display: table` elements, so this wrapper is what lets off-screen entries skip style, layout
- * and paint — it is what makes huge pages like Tags fast to render, scroll and re-theme.
- */
-export const DOC_CARD_START = '<div class="doc-card">';
+export function getPluginBucket(pluginRaw?: string): { slug: string; label: string } {
+  if (!pluginRaw || !pluginRaw.trim()) {
+    return { slug: 'core', label: 'Core' };
+  }
+  const low = pluginRaw.toLowerCase();
+  if (low.includes('depenizen')) return { slug: 'depenizen', label: 'Depenizen' };
+  if (low.includes('ddiscordbot')) return { slug: 'ddiscordbot', label: 'dDiscordBot' };
+  if (low.includes('citizens')) return { slug: 'citizens', label: 'Citizens' };
+  if (low.includes('vault')) return { slug: 'vault', label: 'Vault' };
+  return { slug: 'other', label: 'Other Addons' };
+}
+
+export function getAsyncTokens(obj: AnyMetaObject): string | null {
+  if (obj.type === 'Command') {
+    const info = getCommandAsyncStatus(obj.name);
+    if (info.runsAsync && info.deferrable) return 'safe defer';
+    if (info.runsAsync) return 'safe';
+    if (info.deferrable) return 'defer';
+    return 'main';
+  }
+  if (obj.type === 'Tag') {
+    const tag = obj as MetaTagObject;
+    const info = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
+    return info.isSafe ? 'safe' : 'main';
+  }
+  if (obj.type === 'ObjectType') {
+    const ot = obj as MetaObjectTypeObject;
+    const info = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
+    if (info.isFullSafe) return 'safe';
+    if (info.isPartial) return 'defer';
+    return 'main';
+  }
+  return null;
+}
+
 /** Marks the end of one entry; also used as the safe place to split a page into chunks. */
 export const DOC_CARD_END = '</table></div>';
 
-export function wrapDocCard(html: string): string {
-  return DOC_CARD_START + html.trim() + '</div>';
+export function wrapDocCard(obj: AnyMetaObject): string {
+  const plugin = getPluginBucket(obj.plugin);
+  const asyncTokens = getAsyncTokens(obj);
+  const attrs = asyncTokens
+    ? ` data-async="${asyncTokens}" data-plugin="${plugin.slug}"`
+    : ` data-plugin="${plugin.slug}"`;
+  return `<div class="doc-card"${attrs}>${obj.htmlContent.trim()}</div>`;
 }
 
-// Meta generated by older versions embeds two inline SVGs into every "View on GitHub" button
-// (~1 KB per entry, ~2.5 MB on the Tags page). Swap them for CSS-drawn icons that look the same.
 const LEGACY_GITHUB_ICON_RE = /<svg class="source-github-icon"[^>]*>[\s\S]*?<\/svg>/g;
 const LEGACY_GITHUB_ARROW_RE = /<svg class="source-github-arrow"[^>]*>[\s\S]*?<\/svg>/g;
+const LEGACY_INLINE_ONCLICK_RE = /\s+onclick="doFlashFor\([^"]*\)"/g;
 
 export function cleanHtmlContent(text: string): string {
   if (!text) return '';
   return text
     .replace(LEGACY_GITHUB_ICON_RE, '<span class="source-github-icon" aria-hidden="true"></span>')
     .replace(LEGACY_GITHUB_ARROW_RE, '<span class="source-github-arrow" aria-hidden="true"></span>')
+    .replace(LEGACY_INLINE_ONCLICK_RE, '')
     .replace(/<\/pre>\s*(?:<br\s*\/?>\s*)+/gi, '</pre>\n')
     .replace(/(?:<br\s*\/?>\s*)+<pre>/gi, '\n<pre>')
-    .replace(/(?<!<span class="meta_link_badge">)<span class="meta_url">([^<]+)<\/span>\s*<a href="(\/Docs\/[^"]+)">([\s\S]*?)<\/a>/gi, '<span class="meta_link_badge"><span class="meta_url">$1</span><a class="meta_link_anchor" href="$2">$3</a></span>');
+    .replace(
+      /(?<!<span class="meta_link_badge">)<span class="meta_url">([^<]+)<\/span>\s*<a href="(\/Docs\/[^"]+)">([\s\S]*?)<\/a>/gi,
+      '<span class="meta_link_badge"><span class="meta_url">$1</span><a class="meta_link_anchor" href="$2">$3</a></span>'
+    );
 }
 
-export function handleMetaPage<T extends AnyMetaObject>(
-  objects: T[],
-  search: string | null | undefined,
-  extraResults?: (current: T[]) => T[] | null
-): DocViewModel {
-  // Always guarantee exact original sorting: plugin ? 1 : 0 -> warnings.length -> group -> cleanName
-  const sorted = sortMetaObjects(objects);
-  const cleanSearch = search ? search.trim().toLowerCase() : null;
+function summarizeFilters(items: AnyMetaObject[]): {
+  asyncCounts?: AsyncFilterCounts;
+  pluginOptions?: PluginFilterOption[];
+} {
+  let hasAsync = false;
+  const asyncCounts: AsyncFilterCounts = { safe: 0, defer: 0, main: 0 };
+  const pluginMap = new Map<string, PluginFilterOption>();
 
-  let toDisplay: T[];
-  if (!cleanSearch) {
-    toDisplay = [...sorted];
-  } else {
-    toDisplay = sorted.filter((o) => getMatchQuality(o.searchHelper, cleanSearch) > 6);
-  }
-
-  if (extraResults) {
-    const extra = extraResults(toDisplay);
-    if (extra && extra.length > 0) {
-      toDisplay.unshift(...extra);
+  for (const obj of items) {
+    const tokens = getAsyncTokens(obj);
+    if (tokens) {
+      hasAsync = true;
+      if (tokens.includes('safe')) asyncCounts.safe++;
+      if (tokens.includes('defer')) asyncCounts.defer++;
+      if (tokens === 'main') asyncCounts.main++;
     }
-  }
-
-  if (cleanSearch) {
-    const exactMatch = toDisplay.find((o) => {
-      if (o.cleanName === cleanSearch) return true;
-      if (o.type === 'Tag') {
-        const untagged = o.cleanName.replace(/tag\./g, '.');
-        if (untagged === cleanSearch) return true;
-      }
-      return false;
-    });
-    if (exactMatch) {
-      toDisplay = [exactMatch];
+    const bucket = getPluginBucket(obj.plugin);
+    let entry = pluginMap.get(bucket.slug);
+    if (!entry) {
+      entry = { slug: bucket.slug, label: bucket.label, count: 0 };
+      pluginMap.set(bucket.slug, entry);
     }
+    entry.count++;
   }
 
-  // Categories extracted in the exact order they appear in toDisplay (preserving sorted group order)
-  const categories: string[] = [];
-  const categorySet = new Set<string>();
-  for (const obj of toDisplay) {
-    const grp = obj.groupingString || '(ERROR MISSING GROUP)';
-    if (!categorySet.has(grp)) {
-      categorySet.add(grp);
-      categories.push(grp);
-    }
-  }
+  const pluginOrder = ['core', 'depenizen', 'ddiscordbot', 'citizens', 'vault', 'other'];
+  const pluginOptions = Array.from(pluginMap.values()).sort(
+    (a, b) => pluginOrder.indexOf(a.slug) - pluginOrder.indexOf(b.slug)
+  );
 
-  let outText = '<center>\n';
+  return {
+    asyncCounts: hasAsync ? asyncCounts : undefined,
+    pluginOptions: pluginOptions.length > 1 ? pluginOptions : undefined,
+  };
+}
 
+function renderGroupedCards<T extends AnyMetaObject>(toDisplay: T[], categories: string[]): string {
+  let outText = '';
   if (categories.length > 1) {
-    // Entry anchors use the entry's cleanName as id (see meta-loader). A few categories have the same
-    // name as an entry (e.g. category "queue" and command "queue", category "proc" and tag <proc>),
-    // which produced duplicate ids: the chip or the entry link then jumped to the wrong element.
-    // Only those colliding categories get a prefixed id; every other anchor stays exactly the same.
-    const entryIds = new Set(toDisplay.map((o) => o.cleanName));
+    const entryIds = new Set<string>();
+    for (const o of toDisplay) {
+      entryIds.add(o.cleanName);
+      entryIds.add(encodeURIComponent(o.cleanName));
+    }
     const categoryAnchor = (cat: string) => {
       const linkable = encodeURIComponent(cat.toLowerCase());
-      return entryIds.has(linkable) ? `category-${linkable}` : linkable;
+      return entryIds.has(linkable) || entryIds.has(cat.toLowerCase())
+        ? `category-${linkable}`
+        : linkable;
     };
 
     outText += '<div class="categories_wrapper">\n';
@@ -299,12 +300,12 @@ export function handleMetaPage<T extends AnyMetaObject>(
     outText += categories
       .map((cat) => {
         const linkable = categoryAnchor(cat);
-        return `    <a href="#${linkable}" onclick="doFlashFor('${linkable}', event)" class="category_chip">${escapeForHTML(cat)}</a>`;
+        const attrId = escapeHtmlAttr(linkable);
+        return `    <a href="#${attrId}" data-category-chip="${attrId}" class="category_chip">${escapeForHTML(cat)}</a>`;
       })
       .join('\n');
     outText += '\n  </div>\n</div>\n';
 
-    // Group in a single pass instead of re-filtering the whole list for every category.
     const byCategory = new Map<string, T[]>();
     for (const obj of toDisplay) {
       const grp = obj.groupingString || '(ERROR MISSING GROUP)';
@@ -315,16 +316,91 @@ export function handleMetaPage<T extends AnyMetaObject>(
 
     for (const cat of categories) {
       const linkable = categoryAnchor(cat);
-      outText += `<hr class="category_divider"><h4 class="category_title">Category: <a id="${linkable}" href="#${linkable}" onclick="doFlashFor('${linkable}', event)">${escapeForHTML(cat)}</a></h4>\n`;
+      const attrId = escapeHtmlAttr(linkable);
+      outText += `<div class="category_header_block" data-category-header="${attrId}"><hr class="category_divider"><h4 class="category_title">Category: <a id="${attrId}" href="#${attrId}">${escapeForHTML(cat)}</a></h4></div>\n`;
       const catObjs = byCategory.get(cat) || [];
-      const distinctHtml = Array.from(new Set(catObjs.map((o) => o.htmlContent)));
-      outText += distinctHtml.map(wrapDocCard).join('\n');
+      const seenHtml = new Set<string>();
+      for (const obj of catObjs) {
+        if (seenHtml.has(obj.htmlContent)) continue;
+        seenHtml.add(obj.htmlContent);
+        outText += wrapDocCard(obj) + '\n';
+      }
     }
   } else {
-    outText += toDisplay.map((o) => wrapDocCard(o.htmlContent)).join('\n');
+    outText += toDisplay.map((o) => wrapDocCard(o)).join('\n');
+  }
+  return outText;
+}
+
+export function handleMetaPage<T extends AnyMetaObject>(
+  objects: T[],
+  search: string | null | undefined,
+  extraResults?: (current: T[]) => T[] | null
+): DocViewModel {
+  // Objects from `docs.*` dictionaries are already pre-sorted at build/hydration time.
+  const cleanSearch = search ? search.trim().toLowerCase() : null;
+
+  let toDisplay: T[];
+  if (!cleanSearch) {
+    toDisplay = objects;
+  } else {
+    toDisplay = objects.filter((o) => getMatchQuality(o.searchHelper, cleanSearch) > 6);
   }
 
-  outText += '</center>';
+  if (extraResults) {
+    const extra = extraResults(toDisplay);
+    if (extra && extra.length > 0) {
+      toDisplay = [...extra, ...toDisplay];
+    }
+  }
+
+  let relatedMatches: T[] = [];
+  if (cleanSearch && toDisplay.length > 1) {
+    const exactMatch = toDisplay.find((o) => {
+      if (o.cleanName === cleanSearch) return true;
+      if (o.type === 'Tag') {
+        const untagged = o.cleanName.replace(/tag\./g, '.');
+        if (untagged === cleanSearch) return true;
+      }
+      return false;
+    });
+    if (exactMatch) {
+      relatedMatches = toDisplay.filter((o) => o !== exactMatch);
+      toDisplay = [exactMatch];
+    }
+  }
+
+  const categories: string[] = [];
+  const categorySet = new Set<string>();
+  for (const obj of toDisplay) {
+    const grp = obj.groupingString || '(ERROR MISSING GROUP)';
+    if (!categorySet.has(grp)) {
+      categorySet.add(grp);
+      categories.push(grp);
+    }
+  }
+
+  let outText = '<div class="doc-list">\n';
+  outText += renderGroupedCards(toDisplay, categories);
+
+  if (relatedMatches.length > 0) {
+    const previewNames = relatedMatches
+      .slice(0, 4)
+      .map((m) => escapeForHTML(m.name))
+      .join(', ');
+    const moreSuffix = relatedMatches.length > 4 ? ', …' : '';
+    outText += `<div class="related-matches-wrapper">\n`;
+    outText += `  <button type="button" class="related-matches-toggle" data-related-toggle="true" aria-expanded="false">`;
+    outText += `<span>Showing exact match &bull; Show <strong>${relatedMatches.length}</strong> other matching ${relatedMatches.length === 1 ? 'entry' : 'entries'} (${previewNames}${moreSuffix})</span>`;
+    outText += `</button>\n`;
+    outText += `  <div class="related-matches-body" hidden>\n`;
+    outText += relatedMatches.map((o) => wrapDocCard(o)).join('\n');
+    outText += `\n  </div>\n</div>\n`;
+  }
+
+  outText += '</div>';
+
+  const filterSummary = toDisplay.length > 3 ? summarizeFilters(toDisplay) : {};
 
   return {
     isAll: !cleanSearch,
@@ -333,6 +409,8 @@ export function handleMetaPage<T extends AnyMetaObject>(
     contentHtml: cleanHtmlContent(outText),
     searchText: search || null,
     categories,
+    relatedMatchesCount: relatedMatches.length > 0 ? relatedMatches.length : undefined,
+    ...filterSummary,
   };
 }
 
@@ -343,7 +421,7 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
       isAll: false,
       currentlyShown: 0,
       max: allObjects.length,
-      contentHtml: '<center></center>',
+      contentHtml: '<div class="doc-list"></div>',
       searchText: q && q.toLowerCase() !== 'nothing' ? q : '',
       categories: [],
     };
@@ -359,7 +437,6 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
     }
   }
 
-  // Order: -quality, obj.type, obj.cleanName
   matches.sort((a, b) => {
     if (a.quality !== b.quality) {
       return b.quality - a.quality;
@@ -370,7 +447,7 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
     return a.obj.cleanName.localeCompare(b.obj.cleanName);
   });
 
-  let outText = '<center>';
+  let outText = '<div class="doc-list">';
   if (matches.length > 0) {
     let lastQuality = -1;
     let lastType = '';
@@ -378,21 +455,25 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
     for (const match of matches) {
       if (match.quality !== lastQuality) {
         lastQuality = match.quality;
+        lastType = '';
         const qualityName = SEARCH_QUALITY_NAMES[match.quality] || 'Matched';
-        outText += `<h4 class="category_title mt-4 mb-2">${qualityName} Results</h4>`;
+        outText += `<div class="category_header_block"><h4 class="category_title mt-4 mb-2">${qualityName} Results</h4></div>`;
       }
       if (match.obj.type !== lastType) {
         lastType = match.obj.type;
-        outText += `<h4 class="category_title mt-3 mb-2">${lastType}</h4>`;
+        outText += `<div class="category_header_block"><h4 class="category_title mt-3 mb-2">${lastType}</h4></div>`;
       }
-      outText += wrapDocCard(match.obj.htmlContent);
+      outText += wrapDocCard(match.obj);
     }
   } else {
-    outText += `<div class="my-8 px-6 py-8 rounded-xl bg-slate-100 dark:bg-[#282b32] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium text-center max-w-md mx-auto">
+    outText += `<div class="my-8 px-6 py-8 rounded-xl bg-slate-100 dark:bg-[#161922] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium text-center max-w-md mx-auto">
       No documentation entries found matching &ldquo;<strong>${escapeForHTML(q)}</strong>&rdquo;.
     </div>`;
   }
-  outText += '</center>';
+  outText += '</div>';
+
+  const matchedObjs = matches.map((m) => m.obj);
+  const filterSummary = matchedObjs.length > 3 ? summarizeFilters(matchedObjs) : {};
 
   return {
     isAll: false,
@@ -401,5 +482,6 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
     contentHtml: cleanHtmlContent(outText),
     searchText: q,
     categories: [],
+    ...filterSummary,
   };
 }

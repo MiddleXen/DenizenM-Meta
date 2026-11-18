@@ -548,10 +548,11 @@ export function htmlizeTags(
         output += `${escapeForHTML(tagName)}${low === 'none' || low === 'todo' ? '' : ' ERROR: TAG INVALID'}\n<br>`;
       } else {
         let desc = parseAndEscape(found.description);
+        const encodedTag = encodeURIComponent(found.cleanedName);
         if (desc.includes('\n')) {
-          desc = desc.slice(0, desc.indexOf('\n')) + ` <a href="/Docs/Tags/${found.cleanedName}">(...)</a>`;
+          desc = desc.slice(0, desc.indexOf('\n')) + ` <a href="/Docs/Tags/${encodedTag}">(...)</a>`;
         }
-        output += `<a href="/Docs/Tags/${found.cleanedName}">${properName}</a> ${desc}\n<br>`;
+        output += `<a href="/Docs/Tags/${encodedTag}">${properName}</a> ${desc}\n<br>`;
       }
     }
   }

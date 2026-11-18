@@ -19,6 +19,8 @@ export type MetaType =
   | 'Data'
   | 'GuidePage';
 
+export type AsyncFilterKind = 'safe' | 'defer' | 'main';
+
 export interface BaseMetaObject {
   type: MetaType;
   name: string;
@@ -68,7 +70,7 @@ export interface MetaEventObject extends BaseMetaObject {
   type: 'Event';
   events: string[];
   cleanEvents: string[];
-  overlyCleanedEvents: string[];
+  overlyCleanedEvents?: string[];
   triggers: string;
   context: string[];
   determinations: string[];
@@ -95,7 +97,7 @@ export interface MetaMechanismObject extends BaseMetaObject {
 export interface MetaActionObject extends BaseMetaObject {
   type: 'Action';
   actions: string[];
-  cleanActions: string[];
+  cleanActions?: string[];
   triggers: string;
   context: string[];
   determinations: string[];
@@ -146,15 +148,16 @@ export interface MetaDocsData {
   lastReload: string;
 }
 
-export interface ThemeConfig {
-  id: string;
-  name: string;
-  author: string;
-  bootstrapUrl: string;
-  bootstrapFooterText: string;
-  colorCss: string;
-  footer: string;
-  isDark: boolean;
+export interface PluginFilterOption {
+  slug: string;
+  label: string;
+  count: number;
+}
+
+export interface AsyncFilterCounts {
+  safe: number;
+  defer: number;
+  main: number;
 }
 
 export interface DocViewModel {
@@ -164,4 +167,7 @@ export interface DocViewModel {
   contentHtml: string;
   searchText: string | null;
   categories: string[];
+  asyncCounts?: AsyncFilterCounts;
+  pluginOptions?: PluginFilterOption[];
+  relatedMatchesCount?: number;
 }

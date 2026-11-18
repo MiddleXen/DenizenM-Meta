@@ -16,7 +16,6 @@ export function HomeSearch() {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load recent searches from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(RECENT_KEY);
@@ -32,7 +31,7 @@ export function HomeSearch() {
           }
         }
       }
-    } catch (_) {}
+    } catch {}
   }, []);
 
   const addRecentSearch = useCallback((term: string) => {
@@ -42,7 +41,7 @@ export function HomeSearch() {
       const next = [clean, ...prev.filter((item) => item.toLowerCase() !== clean.toLowerCase())].slice(0, MAX_RECENT);
       try {
         localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      } catch (_) {}
+      } catch {}
       return next;
     });
   }, []);
@@ -51,7 +50,7 @@ export function HomeSearch() {
     setRecentSearches([]);
     try {
       localStorage.removeItem(RECENT_KEY);
-    } catch (_) {}
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -64,13 +63,21 @@ export function HomeSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Global hotkey Ctrl+K / Cmd+K or / to focus search
+  // Global hotkey Ctrl+K / Cmd+K or / on the Home page
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         inputRef.current?.focus();
-      } else if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') {
+        inputRef.current?.select();
+      } else if (
+        e.key === '/' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
         e.preventDefault();
         inputRef.current?.focus();
       }
@@ -100,12 +107,12 @@ export function HomeSearch() {
     } else if (e.key === 'Escape') {
       setIsOpen(false);
       setActiveIndex(-1);
+      inputRef.current?.blur();
     }
   };
 
   return (
     <div ref={containerRef} className="w-full max-w-full relative z-50">
-      {/* Search Input Container - Autocomplete anchors directly to this */}
       <div className="relative w-full">
         <form onSubmit={handleSearch} className="w-full">
           <div className="group relative flex items-center w-full rounded-2xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/90 dark:border-white/[0.08] shadow-xs transition-all duration-200 focus-within:border-slate-400 dark:focus-within:border-white/25">
@@ -144,7 +151,7 @@ export function HomeSearch() {
                     setIsOpen(false);
                     inputRef.current?.focus();
                   }}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />
@@ -177,7 +184,6 @@ export function HomeSearch() {
         />
       </div>
 
-      {/* Recent Searches (Displayed ONLY when there is history) */}
       {recentSearches.length > 0 && (
         <div className="mt-3 flex items-center justify-center flex-wrap gap-1.5 text-xs">
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 mr-0.5 leading-none">
@@ -191,7 +197,7 @@ export function HomeSearch() {
               onClick={() => {
                 setSearchValue(term);
                 setIsOpen(false);
-                inputRef.current?.focus();
+                triggerSearch(term);
               }}
               className="inline-flex items-center justify-center px-2.5 py-1 rounded-md font-mono text-xs leading-none bg-white dark:bg-[#0c0e14] hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
             >

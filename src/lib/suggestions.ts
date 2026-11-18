@@ -1,49 +1,120 @@
-import { MetaDocsData } from './types';
+import { MetaDocsData, MetaObjectTypeObject, MetaTagObject } from './types';
 import {
   getCommandAsyncStatus,
   getTagAsyncStatus,
   getObjectTypeAsyncStatus,
 } from './async-safety';
 
+export type SuggestionType = 'Command' | 'Tag' | 'Event' | 'Mechanism' | 'Action' | 'Language' | 'ObjectType';
+
 export interface SearchSuggestion {
   name: string;
   cleanName: string;
-  type: 'Command' | 'Tag' | 'Event' | 'Mechanism' | 'Action' | 'Language' | 'ObjectType';
+  type: SuggestionType;
   href: string;
   description: string;
   keywords?: string[];
 }
 
+export type CompactSuggestionTuple =
+  | [string, string, string, string]
+  | [string, string, string, string, string[]];
+
+const TYPE_TO_CODE: Record<SuggestionType, string> = {
+  Command: 'C',
+  Tag: 'T',
+  Event: 'E',
+  Mechanism: 'M',
+  Action: 'A',
+  Language: 'L',
+  ObjectType: 'O',
+};
+
+const CODE_TO_TYPE: Record<string, SuggestionType> = {
+  C: 'Command',
+  T: 'Tag',
+  E: 'Event',
+  M: 'Mechanism',
+  A: 'Action',
+  L: 'Language',
+  O: 'ObjectType',
+};
+
+export function hrefForSuggestion(type: SuggestionType, cleanName: string): string {
+  const enc = encodeURIComponent(cleanName);
+  switch (type) {
+    case 'Command':
+      return `/Docs/Commands/${enc}`;
+    case 'Tag':
+      return `/Docs/Tags/${enc}`;
+    case 'Event':
+      return `/Docs/Events/${enc}`;
+    case 'Mechanism':
+      return `/Docs/Mechanisms/${enc}`;
+    case 'Action':
+      return `/Docs/Actions/${enc}`;
+    case 'Language':
+      return `/Docs/Languages/${enc}`;
+    case 'ObjectType':
+      return `/Docs/ObjectTypes/${enc}`;
+    default:
+      return `/Docs/Search/${enc}`;
+  }
+}
+
+export function serializeSuggestions(list: SearchSuggestion[]): string {
+  const compact: CompactSuggestionTuple[] = list.map((s) => {
+    const code = TYPE_TO_CODE[s.type] || 'C';
+    const cleanDiff = s.cleanName === s.name.toLowerCase() ? '' : s.cleanName;
+    if (s.keywords && s.keywords.length > 0) {
+      return [code, s.name, cleanDiff, s.description, s.keywords];
+    }
+    return [code, s.name, cleanDiff, s.description];
+  });
+  return JSON.stringify(compact);
+}
+
+export function parseSuggestionsPayload(raw: unknown): SearchSuggestion[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((entry): SearchSuggestion => {
+    if (Array.isArray(entry)) {
+      const [code, name, cleanDiff, description, keywords] = entry as CompactSuggestionTuple;
+      const type = CODE_TO_TYPE[code] || 'Command';
+      const cleanName = cleanDiff || String(name).toLowerCase();
+      return {
+        name: String(name),
+        cleanName,
+        type,
+        href: hrefForSuggestion(type, cleanName),
+        description: String(description || ''),
+        keywords: Array.isArray(keywords) ? keywords : undefined,
+      };
+    }
+    const obj = entry as SearchSuggestion;
+    const type = obj.type || 'Command';
+    const cleanName = obj.cleanName || String(obj.name || '').toLowerCase();
+    return {
+      name: obj.name,
+      cleanName,
+      type,
+      href: obj.href || hrefForSuggestion(type, cleanName),
+      description: obj.description || '',
+      keywords: obj.keywords,
+    };
+  });
+}
+
 export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[] {
   return docs.allObjects.map((obj) => {
-    let href = '';
-    switch (obj.type) {
-      case 'Command':
-        href = `/Docs/Commands/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      case 'Tag':
-        href = `/Docs/Tags/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      case 'Event':
-        href = `/Docs/Events/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      case 'Mechanism':
-        href = `/Docs/Mechanisms/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      case 'Action':
-        href = `/Docs/Actions/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      case 'Language':
-        href = `/Docs/Languages/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      case 'ObjectType':
-        href = `/Docs/ObjectTypes/${encodeURIComponent(obj.cleanName)}`;
-        break;
-      default:
-        href = `/Docs/Search/${encodeURIComponent(obj.cleanName)}`;
-    }
+    const type = (obj.type as SuggestionType) || 'Command';
+    const href = hrefForSuggestion(type, obj.cleanName);
 
-    const rawDesc = obj.rawValues?.description?.[0] || (obj as any).short || '';
+    const rawDesc =
+      obj.rawValues?.description?.[0] ||
+      (obj as { short?: string; description?: string; triggers?: string }).short ||
+      (obj as { description?: string }).description ||
+      (obj as { triggers?: string }).triggers ||
+      '';
     const firstDesc = rawDesc
       .replace(/\r/g, '')
       .split('\n')[0]
@@ -60,7 +131,7 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
         if (!keywords.includes('async-safe')) keywords.push('async-safe');
       }
     } else if (obj.type === 'Tag') {
-      const tag = obj as any;
+      const tag = obj as MetaTagObject;
       if (tag.beforeDot && tag.beforeDot.toLowerCase().endsWith('tag')) {
         const untaggedBase = tag.beforeDot.slice(0, -'tag'.length);
         const untaggedFull = untaggedBase + '.' + (tag.afterDotCleaned || '');
@@ -73,13 +144,13 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
         if (!keywords.includes('async-safe')) keywords.push('async-safe');
       }
     } else if (obj.type === 'ObjectType') {
-      const otAsync = getObjectTypeAsyncStatus((obj as any).typeName || obj.cleanName);
+      const ot = obj as MetaObjectTypeObject;
+      const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
       if (otAsync.isFullSafe || otAsync.isPartial) {
         if (!keywords.includes('async')) keywords.push('async');
       }
     }
 
-    // Ensure async tags & commands are indexed with 'async' keyword
     const isAsyncRelated =
       obj.cleanName.includes('async') ||
       obj.name.toLowerCase().includes('async') ||
@@ -87,7 +158,7 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
       obj.cleanName === 'util.current_thread' ||
       obj.cleanName === 'util.linger_stats' ||
       obj.cleanName === 'util.current_time_nanos' ||
-      (obj.rawValues?.syntax?.[0] && obj.rawValues.syntax[0].toLowerCase().includes('(async)'));
+      ((obj as { syntax?: string }).syntax && (obj as { syntax?: string }).syntax!.toLowerCase().includes('(async)'));
 
     if (isAsyncRelated && !keywords.includes('async')) {
       keywords.push('async');
@@ -96,10 +167,10 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
     return {
       name: obj.name,
       cleanName: obj.cleanName,
-      type: obj.type as SearchSuggestion['type'],
+      type,
       href,
       description: firstDesc.length > 90 ? firstDesc.slice(0, 87) + '...' : firstDesc,
-      keywords,
+      keywords: keywords.length > 0 ? keywords : undefined,
     };
   });
 }
@@ -189,7 +260,6 @@ export function filterSuggestions(
       score = 25;
     }
 
-    // Multi-word token matching (e.g. "item containers" matches "Item Script Containers")
     if (score === 0 && words.length > 1) {
       const allWordsInClean = words.every((w) => c.includes(w) || untaggedClean.includes(w));
       const allWordsInName = words.every((w) => n.includes(w) || untaggedName.includes(w));
@@ -211,7 +281,6 @@ export function filterSuggestions(
     if (a.score !== b.score) {
       return b.score - a.score;
     }
-    // Prefer shorter names if scores match
     return a.item.cleanName.length - b.item.cleanName.length;
   });
 
