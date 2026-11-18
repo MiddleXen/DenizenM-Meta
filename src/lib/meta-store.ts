@@ -24,6 +24,8 @@ import {
   getObjectTypeAsyncStatus,
   getTagAsyncStatus,
 } from './async-safety';
+import { matchEventPattern } from './meta-data';
+import { expandInheritedQueries, normalizeScriptQuery } from './object-inheritance';
 import { buildSuggestionsFromDocs, serializeSuggestions } from './suggestions';
 import { escapeForHTML, escapeHtmlAttr } from './util';
 
@@ -225,24 +227,6 @@ export function wrapDocCard(obj: AnyMetaObject): string {
   return `<div class="doc-card"${attrs}>${obj.htmlContent.trim()}</div>`;
 }
 
-const LEGACY_GITHUB_ICON_RE = /<svg class="source-github-icon"[^>]*>[\s\S]*?<\/svg>/g;
-const LEGACY_GITHUB_ARROW_RE = /<svg class="source-github-arrow"[^>]*>[\s\S]*?<\/svg>/g;
-const LEGACY_INLINE_ONCLICK_RE = /\s+onclick="doFlashFor\([^"]*\)"/g;
-
-export function cleanHtmlContent(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(LEGACY_GITHUB_ICON_RE, '<span class="source-github-icon" aria-hidden="true"></span>')
-    .replace(LEGACY_GITHUB_ARROW_RE, '<span class="source-github-arrow" aria-hidden="true"></span>')
-    .replace(LEGACY_INLINE_ONCLICK_RE, '')
-    .replace(/<\/pre>\s*(?:<br\s*\/?>\s*)+/gi, '</pre>\n')
-    .replace(/(?:<br\s*\/?>\s*)+<pre>/gi, '\n<pre>')
-    .replace(
-      /(?<!<span class="meta_link_badge">)<span class="meta_url">([^<]+)<\/span>\s*<a href="(\/Docs\/[^"]+)">([\s\S]*?)<\/a>/gi,
-      '<span class="meta_link_badge"><span class="meta_url">$1</span><a class="meta_link_anchor" href="$2">$3</a></span>'
-    );
-}
-
 function summarizeFilters(items: AnyMetaObject[]): {
   asyncCounts?: AsyncFilterCounts;
   pluginOptions?: PluginFilterOption[];
@@ -341,26 +325,52 @@ export function handleMetaPage<T extends AnyMetaObject>(
   const cleanSearch = search ? search.trim().toLowerCase() : null;
 
   let toDisplay: T[];
+  let scored: Array<{ obj: T; quality: number }> | null = null;
   if (!cleanSearch) {
     toDisplay = objects;
   } else {
-    toDisplay = objects.filter((o) => getMatchQuality(o.searchHelper, cleanSearch) > 6);
+    scored = [];
+    for (const o of objects) {
+      const quality = getMatchQuality(o.searchHelper, cleanSearch);
+      if (quality > 0) scored.push({ obj: o, quality });
+    }
+    toDisplay = scored.filter((s) => s.quality > 6).map((s) => s.obj);
   }
 
   if (extraResults) {
     const extra = extraResults(toDisplay);
     if (extra && extra.length > 0) {
-      toDisplay = [...extra, ...toDisplay];
+      const existing = new Set(toDisplay);
+      const uniqueExtra = extra.filter((x) => !existing.has(x));
+      if (uniqueExtra.length > 0) {
+        toDisplay = [...uniqueExtra, ...toDisplay];
+      }
+    }
+  }
+
+  // Tiered quality fallback only when strict (> 6) + extraResults found nothing
+  if (cleanSearch && toDisplay.length === 0 && scored && scored.length > 0) {
+    const med = scored
+      .filter((s) => s.quality > 4)
+      .sort((a, b) => b.quality - a.quality)
+      .map((s) => s.obj);
+    if (med.length > 0) {
+      toDisplay = med;
+    } else {
+      toDisplay = scored.sort((a, b) => b.quality - a.quality).map((s) => s.obj);
     }
   }
 
   let relatedMatches: T[] = [];
   if (cleanSearch && toDisplay.length > 1) {
+    const inheritedExact = cleanSearch.includes('.') ? new Set(expandInheritedQueries(cleanSearch)) : null;
     const exactMatch = toDisplay.find((o) => {
       if (o.cleanName === cleanSearch) return true;
+      if (inheritedExact && inheritedExact.has(o.cleanName)) return true;
       if (o.type === 'Tag') {
         const untagged = o.cleanName.replace(/tag\./g, '.');
         if (untagged === cleanSearch) return true;
+        if (inheritedExact && inheritedExact.has(untagged)) return true;
       }
       return false;
     });
@@ -406,7 +416,7 @@ export function handleMetaPage<T extends AnyMetaObject>(
     isAll: !cleanSearch,
     currentlyShown: toDisplay.length,
     max: objects.length,
-    contentHtml: cleanHtmlContent(outText),
+    contentHtml: outText,
     searchText: search || null,
     categories,
     relatedMatchesCount: relatedMatches.length > 0 ? relatedMatches.length : undefined,
@@ -426,12 +436,50 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
       categories: [],
     };
   }
+
   const searchLow = q.toLowerCase();
+  const nq = normalizeScriptQuery(q);
+  const primarySearch =
+    nq.hasTagSyntax && nq.tagCleaned
+      ? nq.tagCleaned
+      : nq.hasEventSyntax && nq.strippedEvent
+      ? nq.strippedEvent
+      : nq.hasCmdSyntax && nq.strippedCmd
+      ? nq.strippedCmd
+      : nq.cleaned;
+
+  const inheritedTargets = primarySearch.includes('.') ? expandInheritedQueries(primarySearch) : [];
+  const inheritedSet = inheritedTargets.length > 0 ? new Set(inheritedTargets) : null;
+  const checkEventPattern = primarySearch.includes(' ');
 
   const matches: Array<{ quality: number; obj: AnyMetaObject }> = [];
 
   for (const obj of allObjects) {
-    const quality = getMatchQuality(obj.searchHelper, searchLow);
+    let quality = getMatchQuality(obj.searchHelper, primarySearch);
+    if (quality === 0 && primarySearch !== searchLow) {
+      quality = getMatchQuality(obj.searchHelper, searchLow);
+    }
+
+    if (quality < 9 && inheritedSet && (obj.type === 'Tag' || obj.type === 'Mechanism')) {
+      const untagged = obj.cleanName.replace(/tag\./g, '.');
+      if (inheritedSet.has(obj.cleanName) || inheritedSet.has(untagged)) {
+        quality = 9;
+      } else if (
+        quality < 8 &&
+        inheritedTargets.some((t) => obj.cleanName.startsWith(t) || untagged.startsWith(t))
+      ) {
+        quality = 8;
+      }
+    }
+
+    if (quality < 8 && checkEventPattern && obj.type === 'Event') {
+      const evt = obj as MetaEventObject;
+      for (const line of evt.events) {
+        const pScore = matchEventPattern(line, primarySearch);
+        if (pScore > quality) quality = pScore;
+      }
+    }
+
     if (quality > 0) {
       matches.push({ quality, obj });
     }
@@ -479,7 +527,7 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
     isAll: false,
     currentlyShown: matches.length,
     max: allObjects.length,
-    contentHtml: cleanHtmlContent(outText),
+    contentHtml: outText,
     searchText: q,
     categories: [],
     ...filterSummary,

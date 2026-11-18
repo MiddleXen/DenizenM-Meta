@@ -2,6 +2,8 @@
  * Flasher and smooth scroll utility for Denizen Meta documentation
  */
 
+import { ensureAnyRestAnchorMounted } from './doc-rest-registry';
+
 declare global {
   interface Window {
     doFlashFor?: (elementId: string, e?: Event | React.MouseEvent | MouseEvent) => void;
@@ -40,13 +42,28 @@ export function resolveAnchorElement(rawId: string): HTMLElement | null {
   const decoded = safeDecode(rawId);
   const encoded = encodeURIComponent(decoded);
 
-  return (
+  const findInDom = (): HTMLElement | null =>
     document.getElementById(rawId) ||
     document.getElementById(decoded) ||
     document.getElementById(encoded) ||
     document.getElementById(`category-${decoded}`) ||
-    document.getElementById(`category-${encoded}`)
-  );
+    document.getElementById(`category-${encoded}`);
+
+  const found = findInDom();
+  if (found) return found;
+
+  if (
+    ensureAnyRestAnchorMounted(
+      rawId,
+      decoded,
+      encoded,
+      `category-${decoded}`,
+      `category-${encoded}`
+    )
+  ) {
+    return findInDom();
+  }
+  return null;
 }
 
 /** If the user starts scrolling manually during a programmatic glide, stop immediately. */
@@ -183,14 +200,28 @@ function scrollToTarget(target: HTMLElement): void {
   requestAnimationFrame(step);
 }
 
-function flashAndScrollElement(flashable: HTMLElement): void {
+function flashAndScrollElement(flashable: HTMLElement, allowReset = true): void {
   // Unhide if target happens to be inside a collapsed related-matches section
   const hiddenParent = flashable.closest('.related-matches-body[hidden]') as HTMLElement | null;
   if (hiddenParent) {
     hiddenParent.hidden = false;
   }
 
-  const target = (flashable.closest('table') || flashable) as HTMLElement;
+  // If an active DocFilterBar filter currently hides this card/category, auto-reset the filter before scrolling.
+  if (allowReset) {
+    const cardOrCat = (flashable.closest('.doc-card') || flashable.closest('.category_header_block')) as HTMLElement | null;
+    if (cardOrCat && (getComputedStyle(cardOrCat).display === 'none' || cardOrCat.getClientRects().length === 0)) {
+      window.dispatchEvent(new CustomEvent('agy:reset-doc-filters'));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          flashAndScrollElement(flashable, false);
+        });
+      });
+      return;
+    }
+  }
+
+  const target = (flashable.closest('table') || flashable.closest('.category_title') || flashable) as HTMLElement;
   target.classList.remove('flash');
   void target.offsetWidth;
   target.classList.add('flash');

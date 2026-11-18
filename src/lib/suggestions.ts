@@ -1,9 +1,10 @@
-import { MetaDocsData, MetaObjectTypeObject, MetaTagObject } from './types';
+import { MetaDocsData, MetaEventObject, MetaObjectTypeObject, MetaTagObject } from './types';
 import {
   getCommandAsyncStatus,
   getTagAsyncStatus,
   getObjectTypeAsyncStatus,
 } from './async-safety';
+import { expandInheritedQueries, normalizeScriptQuery } from './object-inheritance';
 
 export type SuggestionType = 'Command' | 'Tag' | 'Event' | 'Mechanism' | 'Action' | 'Language' | 'ObjectType';
 
@@ -149,6 +150,14 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
       if (otAsync.isFullSafe || otAsync.isPartial) {
         if (!keywords.includes('async')) keywords.push('async');
       }
+    } else if (obj.type === 'Event') {
+      const evt = obj as MetaEventObject;
+      if (evt.events && evt.events.length > 1) {
+        for (let j = 1; j < evt.events.length; j++) {
+          const line = evt.events[j];
+          if (line && !keywords.includes(line)) keywords.push(line);
+        }
+      }
     }
 
     const isAsyncRelated =
@@ -176,6 +185,8 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
 }
 
 interface NormalizedSuggestion {
+  item: SearchSuggestion;
+  typeLow: string;
   c: string;
   n: string;
   d: string;
@@ -183,30 +194,91 @@ interface NormalizedSuggestion {
   untaggedName: string;
   keywords: string[];
   combined: string;
+  eventTokenLines?: string[][];
 }
 
-/** Lower-cased/derived strings per suggestion, computed once instead of on every keystroke. */
-const normalizedCache = new WeakMap<SearchSuggestion, NormalizedSuggestion>();
+/** Pre-normalized index cached once per suggestion list reference (eliminates 3,978 WeakMap lookups per keystroke). */
+const listIndexCache = new WeakMap<SearchSuggestion[], NormalizedSuggestion[]>();
 
-function normalize(item: SearchSuggestion): NormalizedSuggestion {
-  let norm = normalizedCache.get(item);
-  if (!norm) {
-    const c = item.cleanName.toLowerCase();
-    const n = item.name.toLowerCase().replace(/^<|>$/g, '');
-    const d = item.description.toLowerCase();
-    const keywords = (item.keywords || []).map((k) => k.toLowerCase());
-    norm = {
-      c,
-      n,
-      d,
-      untaggedClean: c.replace(/tag\./g, '.'),
-      untaggedName: n.replace(/tag\./g, '.'),
-      keywords,
-      combined: `${c} ${n} ${d} ${keywords.join(' ')}`,
-    };
-    normalizedCache.set(item, norm);
+function buildNormalizedEntry(item: SearchSuggestion): NormalizedSuggestion {
+  const rawNameLow = item.name.toLowerCase();
+  const c = item.cleanName.toLowerCase();
+  const n = rawNameLow.replace(/^<|>$/g, '');
+  const d = item.description.toLowerCase();
+  const keywords = (item.keywords || []).map((k) => k.toLowerCase());
+  const entry: NormalizedSuggestion = {
+    item,
+    typeLow: item.type.toLowerCase(),
+    c,
+    n,
+    d,
+    untaggedClean: c.replace(/tag\./g, '.'),
+    untaggedName: n.replace(/tag\./g, '.'),
+    keywords,
+    combined: `${c} ${n} ${d} ${keywords.join(' ')}`,
+  };
+  if (item.type === 'Event') {
+    const lines = [rawNameLow, ...keywords.filter((k) => k.includes(' '))];
+    entry.eventTokenLines = lines.map((l) => l.split(/\s+/).filter(Boolean));
   }
-  return norm;
+  return entry;
+}
+
+function getIndexedList(list: SearchSuggestion[]): NormalizedSuggestion[] {
+  let indexed = listIndexCache.get(list);
+  if (!indexed) {
+    indexed = list.map(buildNormalizedEntry);
+    listIndexCache.set(list, indexed);
+  }
+  return indexed;
+}
+
+/** Browser-safe lightweight matcher for event patterns like `<entity> enters|exits <area>` or `player breaks (<material>)`. */
+function matchSuggestionEventTokens(eventTokens: string[], qWords: string[]): number {
+  if (qWords.length < 2 || eventTokens.length === 0) return 0;
+  let ei = 0;
+  let qi = 0;
+  let literalHits = 0;
+  let exactTypeHits = 0;
+
+  while (ei < eventTokens.length && qi < qWords.length) {
+    const rawTok = eventTokens[ei];
+    const isOpt = rawTok.startsWith('(') && rawTok.endsWith(')');
+    const tok = isOpt ? rawTok.slice(1, -1) : rawTok;
+    const qw = qWords[qi];
+
+    if (tok.startsWith('<') && tok.endsWith('>')) {
+      const inner = tok.slice(1, -1).replace(/'/g, '');
+      if (inner === qw) exactTypeHits++;
+      ei++;
+      qi++;
+      continue;
+    }
+
+    const literalMatch = tok.includes('|')
+      ? tok.split('|').some((opt) => opt.replace(/[<>']/g, '') === qw)
+      : tok === qw;
+
+    if (literalMatch) {
+      literalHits++;
+      ei++;
+      qi++;
+    } else if (isOpt) {
+      ei++;
+    } else {
+      return 0;
+    }
+  }
+
+  while (ei < eventTokens.length) {
+    const rawTok = eventTokens[ei];
+    if (rawTok.startsWith('(') && rawTok.endsWith(')')) ei++;
+    else break;
+  }
+
+  return ei === eventTokens.length && qi === qWords.length && literalHits >= 1
+    ? 70 + Math.min(8, literalHits * 2 + exactTypeHits * 4)
+    : 0;
 }
 
 export function filterSuggestions(
@@ -215,19 +287,31 @@ export function filterSuggestions(
   limit = 50,
   categoryFilter?: string
 ): SearchSuggestion[] {
-  const q = rawQuery.trim().toLowerCase().replace(/^<|>$/g, '');
+  const nq = normalizeScriptQuery(rawQuery);
+  let q = nq.cleaned;
+  if (nq.hasTagSyntax && nq.tagCleaned) {
+    q = nq.tagCleaned;
+  } else if (nq.hasEventSyntax && nq.strippedEvent) {
+    q = nq.strippedEvent;
+  } else if (nq.hasCmdSyntax && nq.strippedCmd) {
+    q = nq.strippedCmd;
+  }
+  q = q.replace(/^<|>$/g, '').trim();
   if (!q) return [];
 
-  const filtered = categoryFilter
-    ? list.filter((item) => item.type.toLowerCase() === categoryFilter.toLowerCase())
-    : list;
-
+  const catLow = categoryFilter ? categoryFilter.toLowerCase() : null;
   const words = q.split(/\s+/).filter(Boolean);
+  const eventWords = words.filter((w) => !w.includes(':'));
+  const inheritedTargets = q.includes('.') ? expandInheritedQueries(q) : [];
 
+  const indexed = getIndexedList(list);
   const scored: Array<{ item: SearchSuggestion; score: number }> = [];
 
-  for (const item of filtered) {
-    const { c, n, d, untaggedClean, untaggedName, keywords, combined } = normalize(item);
+  for (let i = 0; i < indexed.length; i++) {
+    const entry = indexed[i];
+    if (catLow && entry.typeLow !== catLow) continue;
+
+    const { item, c, n, d, untaggedClean, untaggedName, keywords, combined, eventTokenLines } = entry;
     let score = 0;
 
     if (c === q || n === q || untaggedClean === q || untaggedName === q) {
@@ -258,6 +342,21 @@ export function filterSuggestions(
       score = 35;
     } else if (d.includes(q)) {
       score = 25;
+    }
+
+    if (score < 92 && inheritedTargets.length > 0 && (item.type === 'Tag' || item.type === 'Mechanism')) {
+      if (inheritedTargets.some((t) => c === t || untaggedClean === t)) {
+        score = 92;
+      } else if (score < 82 && inheritedTargets.some((t) => c.startsWith(t) || untaggedClean.startsWith(t))) {
+        score = 82;
+      }
+    }
+
+    if (score === 0 && eventTokenLines && eventWords.length >= 2) {
+      for (let t = 0; t < eventTokenLines.length; t++) {
+        const s = matchSuggestionEventTokens(eventTokenLines[t], eventWords);
+        if (s > score) score = s;
+      }
     }
 
     if (score === 0 && words.length > 1) {

@@ -21,14 +21,34 @@ const nextConfig = {
     optimizeCss: true,
   },
   async rewrites() {
+    const docSections = [
+      ['commands', 'Commands'],
+      ['tags', 'Tags'],
+      ['events', 'Events'],
+      ['mechanisms', 'Mechanisms'],
+      ['actions', 'Actions'],
+      ['languages', 'Languages'],
+      ['objecttypes', 'ObjectTypes'],
+      ['object-types', 'ObjectTypes'],
+      ['search', 'Search'],
+    ];
+    const sectionRewrites = docSections.flatMap(([lower, canonical]) => [
+      { source: `/docs/${lower}`, destination: `/Docs/${canonical}` },
+      { source: `/docs/${lower}/:path*`, destination: `/Docs/${canonical}/:path*` },
+    ]);
     return [
+      ...sectionRewrites,
+      {
+        source: '/docs',
+        destination: '/Docs',
+      },
       {
         source: '/docs/:path*',
         destination: '/Docs/:path*',
       },
       {
-        source: '/docs',
-        destination: '/Docs',
+        source: '/webhook/reload',
+        destination: '/Webhook/Reload',
       },
       {
         source: '/webhook/:path*',

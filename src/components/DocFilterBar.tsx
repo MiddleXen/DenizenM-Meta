@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Zap, Layers, ListFilter, X, Search } from 'lucide-react';
 import type { AsyncFilterCounts, PluginFilterOption } from '@/lib/types';
 import { doFlashFor } from '@/lib/flasher';
+import { getDocRestController, restCardMatches } from '@/lib/doc-rest-registry';
 
 interface DocFilterBarProps {
   containerId: string;
@@ -87,39 +88,108 @@ export function DocFilterBar({
     else root.removeAttribute('data-filter-plugin');
 
     const isFiltering = Boolean(asyncFilter || pluginFilter);
+    const restCtrl = getDocRestController(containerId);
 
-    // Walk blocks across both .doc-head and .doc-rest in document order
-    const nodes = root.querySelectorAll<HTMLElement>('.category_header_block, .doc-card');
-    let currentHeader: HTMLElement | null = null;
-    let currentHeaderHasMatch = false;
+    if (!isFiltering) {
+      root.querySelectorAll<HTMLElement>('.category_header_block').forEach((hdr) => {
+        if (hdr.style.display) hdr.style.display = '';
+      });
+      root.querySelectorAll<HTMLElement>('[data-category-chip]').forEach((chip) => {
+        if (chip.style.display) chip.style.display = '';
+      });
+      restCtrl?.applyFilterState('', '', new Set());
+
+      const catWrapper = root.querySelector<HTMLElement>('.categories_wrapper');
+      if (catWrapper) {
+        catWrapper.style.display = '';
+        const badge = catWrapper.querySelector('.categories_badge');
+        if (badge) badge.textContent = String(categories.length);
+      }
+
+      setActiveCategories(toDefaultCategoryItems(categories));
+      setFilteredCount(null);
+      return;
+    }
+
     let totalMatched = 0;
     const visibleCategories = new Set<string>();
 
-    const flushHeader = () => {
-      if (!currentHeader) return;
-      const catId = currentHeader.dataset.categoryHeader || '';
-      if (!isFiltering || currentHeaderHasMatch) {
-        currentHeader.style.display = '';
-        if (catId) visibleCategories.add(catId);
-      } else {
-        currentHeader.style.display = 'none';
-      }
-    };
+    if (restCtrl) {
+      const headScope = root.querySelector('.doc-head') || root;
+      const headNodes = headScope.querySelectorAll<HTMLElement>('.category_header_block, .doc-card');
+      let currentHeader: HTMLElement | null = null;
+      let currentCatId = '';
+      let currentHasMatch = false;
 
-    nodes.forEach((node) => {
-      if (node.closest('.related-matches-body')) return;
-      if (node.classList.contains('category_header_block')) {
-        flushHeader();
-        currentHeader = node;
-        currentHeaderHasMatch = false;
-      } else if (node.classList.contains('doc-card')) {
-        if (!isFiltering || cardMatches(node, asyncFilter, pluginFilter)) {
-          currentHeaderHasMatch = true;
-          totalMatched++;
+      const flushHeadHeader = () => {
+        if (currentHeader && currentHasMatch && currentCatId) {
+          visibleCategories.add(currentCatId);
+        }
+      };
+
+      headNodes.forEach((node) => {
+        if (node.closest('.related-matches-body')) return;
+        if (node.classList.contains('category_header_block')) {
+          flushHeadHeader();
+          currentHeader = node;
+          currentCatId = node.dataset.categoryHeader || '';
+          currentHasMatch = false;
+        } else if (node.classList.contains('doc-card')) {
+          if (cardMatches(node, asyncFilter, pluginFilter)) {
+            currentHasMatch = true;
+            totalMatched++;
+          }
+        }
+      });
+      flushHeadHeader();
+
+      for (const chunk of restCtrl.chunks) {
+        for (const card of chunk.cards) {
+          if (restCardMatches(card, asyncFilter, pluginFilter)) {
+            totalMatched++;
+            if (card.catId) visibleCategories.add(card.catId);
+          }
         }
       }
-    });
-    flushHeader();
+
+      headScope.querySelectorAll<HTMLElement>('.category_header_block').forEach((hdr) => {
+        const catId = hdr.dataset.categoryHeader || '';
+        hdr.style.display = visibleCategories.has(catId) ? '' : 'none';
+      });
+
+      restCtrl.applyFilterState(asyncFilter, pluginFilter, visibleCategories);
+    } else {
+      // Fallback walk before rest chunks register (or on small sections without restUrl)
+      const nodes = root.querySelectorAll<HTMLElement>('.category_header_block, .doc-card');
+      let currentHeader: HTMLElement | null = null;
+      let currentHeaderHasMatch = false;
+
+      const flushHeader = () => {
+        if (!currentHeader) return;
+        const catId = currentHeader.dataset.categoryHeader || '';
+        if (currentHeaderHasMatch) {
+          currentHeader.style.display = '';
+          if (catId) visibleCategories.add(catId);
+        } else {
+          currentHeader.style.display = 'none';
+        }
+      };
+
+      nodes.forEach((node) => {
+        if (node.closest('.related-matches-body')) return;
+        if (node.classList.contains('category_header_block')) {
+          flushHeader();
+          currentHeader = node;
+          currentHeaderHasMatch = false;
+        } else if (node.classList.contains('doc-card')) {
+          if (cardMatches(node, asyncFilter, pluginFilter)) {
+            currentHeaderHasMatch = true;
+            totalMatched++;
+          }
+        }
+      });
+      flushHeader();
+    }
 
     // Sync category chips at top of page
     const chips = root.querySelectorAll<HTMLElement>('[data-category-chip]');
@@ -127,7 +197,7 @@ export function DocFilterBar({
     let visibleChipCount = 0;
     chips.forEach((chip) => {
       const id = chip.dataset.categoryChip || '';
-      if (!isFiltering || visibleCategories.has(id)) {
+      if (visibleCategories.has(id)) {
         chip.style.display = '';
         visibleChipCount++;
         const label = (chip.textContent || '').trim();
@@ -141,34 +211,35 @@ export function DocFilterBar({
 
     const catWrapper = root.querySelector<HTMLElement>('.categories_wrapper');
     if (catWrapper) {
-      catWrapper.style.display = isFiltering && visibleChipCount === 0 ? 'none' : '';
+      catWrapper.style.display = visibleChipCount === 0 ? 'none' : '';
       const badge = catWrapper.querySelector('.categories_badge');
       if (badge) {
-        badge.textContent = String(isFiltering ? visibleChipCount : categories.length);
+        badge.textContent = String(visibleChipCount);
       }
     }
 
-    const nextCats =
-      chips.length > 0
-        ? nextActiveCategories
-        : isFiltering
-        ? []
-        : toDefaultCategoryItems(categories);
+    const nextCats = chips.length > 0 ? nextActiveCategories : [];
     setActiveCategories(nextCats);
     if (nextCats.length <= 1) {
       setCatOpen(false);
     }
 
-    setFilteredCount(isFiltering ? totalMatched : null);
+    setFilteredCount(totalMatched);
   }, [containerId, asyncFilter, pluginFilter, categories]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(syncDomFilters);
     const onRestLoaded = () => syncDomFilters();
+    const onResetFilters = () => {
+      setAsyncFilter('');
+      setPluginFilter('');
+    };
     window.addEventListener('agy:doc-rest-loaded', onRestLoaded);
+    window.addEventListener('agy:reset-doc-filters', onResetFilters);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('agy:doc-rest-loaded', onRestLoaded);
+      window.removeEventListener('agy:reset-doc-filters', onResetFilters);
     };
   }, [syncDomFilters]);
 
@@ -197,8 +268,17 @@ export function DocFilterBar({
         setCatOpen(false);
       }
     };
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCatOpen(false);
+      }
+    };
     document.addEventListener('mousedown', onOutside);
-    return () => document.removeEventListener('mousedown', onOutside);
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      window.removeEventListener('keydown', onEscape);
+    };
   }, [catOpen]);
 
   const filteredCategories = useMemo(() => {
@@ -363,6 +443,25 @@ export function DocFilterBar({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {isFiltering && filteredCount === 0 && (
+          <div className="mt-4 w-full max-w-md mx-auto px-5 py-6 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/10 text-center shadow-sm">
+            <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
+              No entries match the combination of selected filters.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setAsyncFilter('');
+                setPluginFilter('');
+              }}
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
           </div>
         )}
       </div>

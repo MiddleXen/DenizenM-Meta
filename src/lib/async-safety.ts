@@ -227,15 +227,15 @@ export interface CommandAsyncInfo {
 }
 
 function makeSafeBadge(text: string): string {
-  return `<span class="badge-async-safe inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"><span class="badge-async-text">${text}</span></span>`;
+  return `<span class="badge-async-safe">${text}</span>`;
 }
 
 function makeDeferBadge(text: string): string {
-  return `<span class="badge-async-defer inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30"><span class="badge-async-text">${text}</span></span>`;
+  return `<span class="badge-async-defer">${text}</span>`;
 }
 
 function makeMainBadge(text: string): string {
-  return `<span class="badge-async-main inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10"><span class="badge-async-text">${text}</span></span>`;
+  return `<span class="badge-async-main">${text}</span>`;
 }
 
 export function getCommandAsyncStatus(commandName: string): CommandAsyncInfo {

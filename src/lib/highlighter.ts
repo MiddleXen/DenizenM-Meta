@@ -43,11 +43,25 @@ const IfCommandLabels = new Set(['cmd:if', 'cmd:else', 'cmd:while', 'cmd:waitunt
 const DeffableCommandLabels = new Set(['cmd:run', 'cmd:runlater', 'cmd:clickable', 'cmd:bungeerun']);
 const VALID_TAG_FIRST_CHAR = /^[a-zA-Z0-9&_\[]$/;
 
+const EMPTY_SCRIPT_SPAN_RE = /<span class="script_[^"]+"><\/span>/g;
+const ADJACENT_SCRIPT_SPAN_RE = /<span class="(script_[^"]+)">([^<]*)<\/span><span class="\1">([^<]*)<\/span>/g;
+
+export function compactHighlightedHtml(html: string): string {
+  if (!html) return html;
+  let res = html.replace(EMPTY_SCRIPT_SPAN_RE, '');
+  let prev: string;
+  do {
+    prev = res;
+    res = res.replace(ADJACENT_SCRIPT_SPAN_RE, '<span class="$1">$2$3</span>');
+  } while (res !== prev);
+  return res;
+}
+
 export function highlight(text: string): string {
   if (!text) return '<pre><code></code></pre>';
   const cleaned = text.replace(/^\r?\n+|\r?\n+$/g, '');
   const escaped = escapeForHTML(cleaned);
-  const colored = colorScript(escaped);
+  const colored = compactHighlightedHtml(colorScript(escaped));
   return `<pre><code>${colored}</code></pre>`;
 }
 
@@ -538,7 +552,7 @@ export function htmlizeTags(
     const tagName = space === -1 ? tag : tag.slice(0, space);
     const tagExtra = space === -1 ? '' : tag.slice(space + 1);
 
-    const properName = `<code>${colorArgument(escapeForHTML(tagName), false, 'meta-hl')}</code>`;
+    const properName = `<code>${compactHighlightedHtml(colorArgument(escapeForHTML(tagName), false, 'meta-hl'))}</code>`;
     if (tagExtra) {
       output += `${properName} ${parseAndEscape(tagExtra)}\n<br>`;
     } else {

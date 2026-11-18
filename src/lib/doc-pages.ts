@@ -6,8 +6,16 @@ import {
   getObjectTypeAsyncStatus,
   getTagAsyncStatus,
 } from './async-safety';
+import { matchEventPattern } from './meta-data';
+import { expandInheritedQueries, normalizeScriptQuery } from './object-inheritance';
 import { cleanTag } from './util';
-import { DocViewModel, MetaDocsData, MetaEventObject } from './types';
+import {
+  DocViewModel,
+  MetaDocsData,
+  MetaEventObject,
+  MetaMechanismObject,
+  MetaTagObject,
+} from './types';
 
 export const DOC_KINDS = ['Commands', 'Tags', 'Events', 'Mechanisms', 'Actions', 'Languages', 'ObjectTypes', 'Search'] as const;
 export type DocKind = (typeof DOC_KINDS)[number];
@@ -23,7 +31,7 @@ const MAX_CACHE_ENTRIES = 120;
  * Bump whenever the generated HTML or the head/rest split changes, so browsers never combine a
  * freshly rendered head with a rest part cached (max-age) from the previous format.
  */
-const REST_FORMAT = '4';
+const REST_FORMAT = '5';
 
 const LIST_START = '<div class="doc-list">';
 const LIST_END = '</div>';
@@ -37,29 +45,122 @@ export interface SplitDocModel extends DocViewModel {
 let cacheDocs: MetaDocsData | null = null;
 const modelCache = new Map<string, SplitDocModel>();
 
+function matchInheritedTags(tagList: MetaTagObject[], cleanId: string): MetaTagObject[] | null {
+  if (!cleanId.includes('.')) return null;
+  const targets = expandInheritedQueries(cleanId);
+  if (targets.length === 0) return null;
+
+  const exact: MetaTagObject[] = [];
+  const prefixed: MetaTagObject[] = [];
+  for (const tag of tagList) {
+    const untagged = tag.cleanName.replace(/tag\./g, '.');
+    if (targets.some((t) => tag.cleanName === t || untagged === t)) {
+      exact.push(tag);
+    } else if (targets.some((t) => tag.cleanName.startsWith(t) || untagged.startsWith(t))) {
+      prefixed.push(tag);
+    }
+  }
+  const combined = [...exact, ...prefixed];
+  return combined.length > 0 ? combined : null;
+}
+
+function matchInheritedOrFallbackMechanisms(
+  mechList: MetaMechanismObject[],
+  cleanId: string,
+  current: MetaMechanismObject[]
+): MetaMechanismObject[] | null {
+  if (!cleanId.includes('.')) return null;
+  const targets = expandInheritedQueries(cleanId);
+  const out: MetaMechanismObject[] = [];
+
+  if (targets.length > 0) {
+    for (const mech of mechList) {
+      if (targets.some((t) => mech.cleanName === t || mech.cleanName.startsWith(t))) {
+        out.push(mech);
+      }
+    }
+  }
+
+  // Fallback for stale doc cross-links like PlayerTag.view_distance -> WorldTag.view_distance
+  if (current.length === 0 && out.length === 0) {
+    const dot = cleanId.indexOf('.');
+    const mechName = cleanId.slice(dot + 1);
+    if (mechName) {
+      for (const mech of mechList) {
+        if (mech.mechName.toLowerCase() === mechName) {
+          out.push(mech);
+        }
+      }
+    }
+  }
+
+  return out.length > 0 ? out : null;
+}
+
 function buildModel(docs: MetaDocsData, kind: DocKind, id: string | null): DocViewModel {
   switch (kind) {
-    case 'Commands':
-      return handleMetaPage(Object.values(docs.commands), id);
-    case 'Tags':
-      return handleMetaPage(Object.values(docs.tags), id ? cleanTag(id) : null);
-    case 'Mechanisms':
-      return handleMetaPage(Object.values(docs.mechanisms), id);
-    case 'Actions':
-      return handleMetaPage(Object.values(docs.actions), id);
+    case 'Commands': {
+      const cmdId = id ? normalizeScriptQuery(id).strippedCmd : null;
+      return handleMetaPage(Object.values(docs.commands), cmdId);
+    }
+    case 'Tags': {
+      const tagId = id ? cleanTag(id).trim().toLowerCase() : null;
+      const tagList = Object.values(docs.tags);
+      const extra = (current: MetaTagObject[]): MetaTagObject[] | null => {
+        if (!tagId || current.some((t) => t.cleanName === tagId || t.cleanName.replace(/tag\./g, '.') === tagId)) {
+          return null;
+        }
+        return matchInheritedTags(tagList, tagId);
+      };
+      return handleMetaPage(tagList, tagId, extra);
+    }
+    case 'Mechanisms': {
+      const mechId = id ? id.trim().toLowerCase() : null;
+      const mechList = Object.values(docs.mechanisms);
+      const extra = (current: MetaMechanismObject[]): MetaMechanismObject[] | null => {
+        if (!mechId) return null;
+        return matchInheritedOrFallbackMechanisms(mechList, mechId, current);
+      };
+      return handleMetaPage(mechList, mechId, extra);
+    }
+    case 'Actions': {
+      const actId = id ? normalizeScriptQuery(id).strippedEvent : null;
+      return handleMetaPage(Object.values(docs.actions), actId);
+    }
     case 'Languages':
       return handleMetaPage(Object.values(docs.languages), id);
     case 'ObjectTypes':
       return handleMetaPage(Object.values(docs.objectTypes), id);
     case 'Events': {
+      const evtId = id ? normalizeScriptQuery(id).strippedEvent : null;
       const eventList = Object.values(docs.events);
       const extra = (current: MetaEventObject[]): MetaEventObject[] | null => {
-        if (current.length > 0 || !id) return null;
-        const clean = id.toLowerCase();
-        const matches = eventList.filter((e) => e.cleanEvents.some((ce) => ce.includes(clean)));
-        return matches.length > 0 ? matches : null;
+        if (!evtId || current.some((e) => e.cleanName === evtId)) return null;
+
+        const patternScored: Array<{ evt: MetaEventObject; score: number }> = [];
+        for (const e of eventList) {
+          let best = 0;
+          for (const line of e.events) {
+            const s = matchEventPattern(line, evtId);
+            if (s > best) best = s;
+          }
+          if (best > 0) {
+            patternScored.push({ evt: e, score: best });
+          }
+        }
+        if (patternScored.length > 0) {
+          patternScored.sort((a, b) => b.score - a.score);
+          return patternScored.map((p) => p.evt);
+        }
+
+        if (current.length === 0) {
+          const clean = evtId.toLowerCase();
+          const matches = eventList.filter((e) => e.cleanEvents.some((ce) => ce.includes(clean)));
+          return matches.length > 0 ? matches : null;
+        }
+        return null;
       };
-      return handleMetaPage(eventList, id, extra);
+      return handleMetaPage(eventList, evtId, extra);
     }
     case 'Search':
       return handleGlobalSearch(docs.allObjects, id || '');
@@ -187,7 +288,8 @@ export async function buildDocPageMetadata(
   }
 
   if (kind === 'Commands') {
-    const cmd = docs.commands[clean];
+    const cmdKey = normalizeScriptQuery(clean).strippedCmd;
+    const cmd = docs.commands[cmdKey];
     if (cmd) {
       const asyncInfo = getCommandAsyncStatus(cmd.name);
       const asyncLabel = asyncInfo.runsAsync
@@ -202,10 +304,14 @@ export async function buildDocPageMetadata(
       return makeRichMeta(title, desc || `DenizenM command '${cmd.name}' documentation.`);
     }
   } else if (kind === 'Tags') {
-    const tagKey = cleanTag(clean);
-    const tag =
+    const tagKey = cleanTag(clean).trim();
+    let tag =
       docs.tags[tagKey] ||
       Object.values(docs.tags).find((t) => t.cleanName.replace(/tag\./g, '.') === tagKey);
+    if (!tag && tagKey.includes('.')) {
+      const targets = expandInheritedQueries(tagKey);
+      tag = targets.map((t) => docs.tags[t]).find(Boolean);
+    }
     if (tag) {
       const asyncInfo = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
       const asyncLabel = asyncInfo.isSafe ? 'Async-Safe' : 'Main Thread';
@@ -225,9 +331,10 @@ export async function buildDocPageMetadata(
       return makeRichMeta(title, desc || `DenizenM mechanism ${mech.fullName} documentation.`);
     }
   } else if (kind === 'Events') {
+    const evtKey = normalizeScriptQuery(clean).strippedEvent;
     const evt =
-      docs.events[clean] ||
-      Object.values(docs.events).find((e) => e.cleanEvents.some((ce) => ce === clean));
+      docs.events[evtKey] ||
+      Object.values(docs.events).find((e) => e.cleanEvents.some((ce) => ce === evtKey));
     if (evt) {
       const title = `on ${evt.cleanName} • Event | DenizenM Meta`;
       const desc = cleanPlainSummary(
@@ -257,7 +364,8 @@ export async function buildDocPageMetadata(
       return makeRichMeta(title, desc || `DenizenM language explanation: ${lang.name}.`);
     }
   } else if (kind === 'Actions') {
-    const act = docs.actions[clean] || docs.actions['on ' + clean];
+    const actKey = normalizeScriptQuery(clean).strippedEvent;
+    const act = docs.actions[actKey] || docs.actions['on ' + actKey];
     if (act) {
       const title = `${act.name} • NPC Action | DenizenM Meta`;
       const desc = cleanPlainSummary(act.triggers);

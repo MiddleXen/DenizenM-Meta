@@ -67,6 +67,19 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close theme / mobile dropdowns on Escape
+  useEffect(() => {
+    if (!themeMenuOpen && !mobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setThemeMenuOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [themeMenuOpen, mobileMenuOpen]);
+
   // Global Ctrl+K / Cmd+K shortcut on all non-Home pages (HomeSearch handles '/')
   useEffect(() => {
     if (pathname === '/') return;

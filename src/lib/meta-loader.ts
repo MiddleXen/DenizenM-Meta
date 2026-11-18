@@ -28,7 +28,7 @@ import {
   htmlizeTags,
   parseAndEscape,
 } from './highlighter';
-import { ExtraDataSets, loadExtraData, suggestExampleFor } from './meta-data';
+import { createSeededRng, ExtraDataSets, loadExtraData, suggestExampleFor } from './meta-data';
 import {
   getCommandAsyncStatus,
   getTagAsyncStatus,
@@ -50,7 +50,13 @@ const HTML_SUFFIX = '</tbody></table>\n';
 function tableLine(type: string, key: string, content: string, clean: boolean): string {
   if (!content) return '';
   const finalContent = clean ? parseAndEscape(content) : content;
-  return `<tr class="table-${type}"><td class="td-doc-key">${key}</td><td>${finalContent}</td></tr>\n`;
+  const rowClass =
+    type === 'default'
+      ? ''
+      : type.startsWith('default ')
+      ? type.slice(8)
+      : `table-${type}`;
+  return `<tr${rowClass ? ` class="${rowClass}"` : ''}><td class="td-doc-key">${key}</td><td>${finalContent}</td></tr>\n`;
 }
 
 function formatSourceLink(sourceUrl: string): string {
@@ -61,11 +67,7 @@ function formatSourceLink(sourceUrl: string): string {
   const safeUrl = urlSafe(sourceUrl);
   const btnText = isGitHub ? 'View on GitHub' : 'View Source';
 
-  return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="source-github-btn">` +
-    `<span class="source-github-icon" aria-hidden="true"></span>` +
-    `<span class="source-github-text">${btnText}</span>` +
-    `<span class="source-github-arrow" aria-hidden="true"></span>` +
-  `</a>`;
+  return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="source-github-btn">${btnText}</a>`;
 }
 
 function addHtmlEndParts(obj: BaseMetaObject): string {
@@ -142,8 +144,8 @@ export function generateEventExplainer(line: string): string {
   return `<code><span class="syntax_command">${sb}</span></code>`;
 }
 
-export function generateEventSample(line: string, extraData: ExtraDataSets): string {
-  let sb = Math.random() > 0.4 ? 'after' : 'on';
+export function generateEventSample(line: string, extraData: ExtraDataSets, rng: () => number = Math.random): string {
+  let sb = rng() > 0.4 ? 'after' : 'on';
   const parts = line.split(' ');
   for (let i = 0; i < parts.length; i++) {
     let part = parts[i];
@@ -152,7 +154,7 @@ export function generateEventSample(line: string, extraData: ExtraDataSets): str
       part = part.slice(0, -1);
     }
     if (part.startsWith('(')) {
-      if (Math.random() > 0.5) {
+      if (rng() > 0.5) {
         while (i < parts.length && !parts[i].endsWith(')')) {
           i++;
         }
@@ -162,10 +164,10 @@ export function generateEventSample(line: string, extraData: ExtraDataSets): str
       }
     }
     if (part.startsWith('<') && part.endsWith('>')) {
-      sb += suggestExampleFor(part.slice(1, -1), extraData);
+      sb += suggestExampleFor(part.slice(1, -1), extraData, rng);
     } else if (part.includes('|')) {
       const options = part.split('|');
-      sb += options[Math.floor(Math.random() * options.length)];
+      sb += options[Math.floor(rng() * options.length)];
     } else {
       sb += part;
     }
@@ -221,7 +223,7 @@ export function parseTagFormat(tag: string): Array<{ text: string; parameter?: s
   return parts;
 }
 
-function examplifyTag(tag: string, returns: string, returnType?: MetaObjectTypeObject): string {
+function examplifyTag(tag: string, returns: string, returnType?: MetaObjectTypeObject, rng: () => number = Math.random): string {
   const retLow = (returns || '').toLowerCase();
   switch (retLow) {
     case 'elementtag':
@@ -236,7 +238,7 @@ function examplifyTag(tag: string, returns: string, returnType?: MetaObjectTypeO
       return `- narrate "the decimal value is ${tag}"`;
   }
   if (returnType && returnType.generatedReturnUsageExample && returnType.generatedReturnUsageExample.length > 0) {
-    const chosen = returnType.generatedReturnUsageExample[Math.floor(Math.random() * returnType.generatedReturnUsageExample.length)];
+    const chosen = returnType.generatedReturnUsageExample[Math.floor(rng() * returnType.generatedReturnUsageExample.length)];
     return chosen.replace(/%VALUE%/g, tag);
   }
   return `- narrate ${tag}`;
@@ -244,7 +246,8 @@ function examplifyTag(tag: string, returns: string, returnType?: MetaObjectTypeO
 
 export function generateTagExample(
   tag: MetaTagObject,
-  objectTypes: Record<string, MetaObjectTypeObject>
+  objectTypes: Record<string, MetaObjectTypeObject>,
+  rng: () => number = Math.random
 ): string | null {
   const parts = tag.parsedFormatParts || parseTagFormat(tag.tagFull);
   if (parts.length > 2 || parts.length === 0) {
@@ -267,35 +270,36 @@ export function generateTagExample(
 
   if (!requiresParam) {
     if (parts.length === 1) {
-      return examplifyTag(`<${baseText}>`, tag.returns, returnTypeObj);
+      return examplifyTag(`<${baseText}>`, tag.returns, returnTypeObj, rng);
     }
-    return examplifyTag(`<${baseText}.${parts[1].text}>`, tag.returns, returnTypeObj);
+    return examplifyTag(`<${baseText}.${parts[1].text}>`, tag.returns, returnTypeObj, rng);
   }
 
   const paramLabel = lastPart.parameter || '';
   let param: string | null = null;
   if (paramLabel === '<#>') {
-    param = SAMPLE_INTEGERS[Math.floor(Math.random() * SAMPLE_INTEGERS.length)];
+    param = SAMPLE_INTEGERS[Math.floor(rng() * SAMPLE_INTEGERS.length)];
   } else if (paramLabel === '<#.#>') {
-    param = SAMPLE_DECIMALS[Math.floor(Math.random() * SAMPLE_DECIMALS.length)];
+    param = SAMPLE_DECIMALS[Math.floor(rng() * SAMPLE_DECIMALS.length)];
   } else {
     const cleanParam = paramLabel.toLowerCase().replace(/[<>().,]/g, '');
     const inputType = objectTypes[cleanParam] || objectTypes[cleanParam + 'tag'];
     if (!inputType || !inputType.exampleValues || inputType.exampleValues.length === 0) {
       return null;
     }
-    param = inputType.exampleValues[Math.floor(Math.random() * inputType.exampleValues.length)];
+    param = inputType.exampleValues[Math.floor(rng() * inputType.exampleValues.length)];
   }
 
   if (parts.length === 1) {
-    return examplifyTag(`<${baseText}[${param}]>`, tag.returns, returnTypeObj);
+    return examplifyTag(`<${baseText}[${param}]>`, tag.returns, returnTypeObj, rng);
   }
-  return examplifyTag(`<${baseText}.${parts[1].text}[${param}]>`, tag.returns, returnTypeObj);
+  return examplifyTag(`<${baseText}.${parts[1].text}[${param}]>`, tag.returns, returnTypeObj, rng);
 }
 
 export function generateMechanismExample(
   mech: MetaMechanismObject,
-  objectTypes: Record<string, MetaObjectTypeObject>
+  objectTypes: Record<string, MetaObjectTypeObject>,
+  rng: () => number = Math.random
 ): string | null {
   const baseObjType = objectTypes[mech.mechObject.toLowerCase()];
   if (!baseObjType || !baseObjType.generatedExampleAdjust) {
@@ -322,7 +326,7 @@ export function generateMechanismExample(
   if (!paramSet || paramSet.length === 0) {
     return null;
   }
-  const chosenParam = paramSet[Math.floor(Math.random() * paramSet.length)];
+  const chosenParam = paramSet[Math.floor(rng() * paramSet.length)];
   return `- adjust ${baseObjType.generatedExampleAdjust} ${mech.mechName}:${chosenParam}`;
 }
 
@@ -614,15 +618,9 @@ export function getMatchQuality(helpers: SearchableHelpers, query: string): numb
     score = checkAllWordsInSingleString(helpers.strongs, 5);
     if (score > 0) return score;
 
-    // If words match across combined metadata (name, synonyms, description)
-    const combined = [
-      ...helpers.perfectMatches,
-      ...helpers.synonyms,
-      ...helpers.strongs,
-      ...helpers.decents,
-    ].join(' ');
-
-    if (words.every((w) => combined.includes(w))) {
+    // If words match across combined metadata (name, synonyms, description) without string allocation
+    const pools = [helpers.perfectMatches, helpers.synonyms, helpers.strongs, helpers.decents];
+    if (words.every((w) => pools.some((p) => p.some((s) => s.includes(w))))) {
       // If at least one word matches the title/cleanName directly
       const hasTitleWord = helpers.perfectMatches.some((s) => words.some((w) => s.includes(w)));
       return hasTitleWord ? 7 : 4;
@@ -1112,7 +1110,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
         const cmd = obj as MetaCommandObject;
         const asyncInfo = getCommandAsyncStatus(cmd.name);
         html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr('- ' + cmd.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(cmd.name)}</span></a>`, false);
-        html += tableLine('default', 'Async Status', `${asyncInfo.badgeHtml} <span class="text-xs text-slate-500 dark:text-slate-400 ml-1.5 align-middle">${escapeForHTML(asyncInfo.descriptionText)}</span>`, false);
+        html += tableLine('default', 'Async Status', `${asyncInfo.badgeHtml} <span class="badge-async-desc">${escapeForHTML(asyncInfo.descriptionText)}</span>`, false);
         if (cmd.guide) {
           html += tableLine('default', 'Related Guide Page', `<a href="${escapeHtmlAttr(cmd.guide)}" target="_blank" rel="noopener noreferrer">${escapeForHTML(cmd.guide)}</a>`, false);
         }
@@ -1130,7 +1128,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
         const tag = obj as MetaTagObject;
         const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
         html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(tag.tagFull)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(tag.tagFull)}</span></a>`, false);
-        html += tableLine('default', 'Async Safety', `${tagAsync.badgeHtml} <span class="text-xs text-slate-500 dark:text-slate-400 ml-1.5 align-middle">${escapeForHTML(tagAsync.descriptionText)}</span>`, false);
+        html += tableLine('default', 'Async Safety', `${tagAsync.badgeHtml} <span class="badge-async-desc">${escapeForHTML(tagAsync.descriptionText)}</span>`, false);
         const returnBase = tag.returns ? tag.returns.split('(')[0] : '';
         html += tableLine('default tr-returns', 'Returns', `<a href="/Docs/ObjectTypes/${encodeURIComponent(returnBase.toLowerCase())}">${escapeForHTML(tag.returns)}</a>`, false);
         if (tag.mechanism) {
@@ -1141,10 +1139,10 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
           html += tableLine('default', 'Example', highlight(example), false);
         }
         if (tag.examples.length === 0) {
-          const example = generateTagExample(tag, objectTypes);
+          const example = generateTagExample(tag, objectTypes, createSeededRng('tag:' + tag.cleanName));
           if (example) {
             const generatedWarning = 'title="This example is generated randomly based on the tag\'s format specification. Specific details such as item/entity type names may not actually be applicable to this tag."';
-            html += tableLine('default slightly_smaller_text', `<abbr ${generatedWarning}>Generated Example</abbr>`, `<span ${generatedWarning}>${highlight(example)}</span>`, false);
+            html += tableLine('default slightly_smaller_text', `<abbr ${generatedWarning}>Generated Example</abbr>`, highlight(example), false);
           }
         }
         break;
@@ -1160,10 +1158,12 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
         }
         if (evt.examples.length === 0 && evt.events.length > 0) {
           const generatedWarning = 'title="This example is generated randomly based on the event\'s format specification. Specific details such as item/entity type names may not actually be applicable to this event."';
-          const sample1 = evt.events.map((e) => generateEventSample(e, extraData));
-          const sample2 = evt.events.map((e) => generateEventSample(e, extraData));
+          const rng1 = createSeededRng('evt1:' + evt.cleanName);
+          const rng2 = createSeededRng('evt2:' + evt.cleanName);
+          const sample1 = evt.events.map((e) => generateEventSample(e, extraData, rng1));
+          const sample2 = evt.events.map((e) => generateEventSample(e, extraData, rng2));
           const uniqueSamples = Array.from(new Set([...sample1, ...sample2])).join('\n');
-          html += tableLine('default smaller_text', `<abbr ${generatedWarning}>Generated Examples</abbr>`, `<span ${generatedWarning}>${highlight(uniqueSamples)}</span>`, false);
+          html += tableLine('default smaller_text', `<abbr ${generatedWarning}>Generated Examples</abbr>`, highlight(uniqueSamples), false);
         }
         if (evt.player) {
           html += tableLine('default', 'Has Player', evt.player + " - this adds switches 'flagged:<flag name>' + 'permission:<node>', in addition to the '<player>' link.", true);
@@ -1200,10 +1200,10 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
           html += tableLine('default', 'Example', highlight(example), false);
         }
         if (mech.examples.length === 0) {
-          const example = generateMechanismExample(mech, objectTypes);
+          const example = generateMechanismExample(mech, objectTypes, createSeededRng('mech:' + mech.cleanName));
           if (example) {
             const generatedWarning = 'title="This example is generated randomly based on the tag\'s format specification. Specific details such as item/entity type names may not actually be applicable to this tag."';
-            html += tableLine('default slightly_smaller_text', `<abbr ${generatedWarning}>Generated Example</abbr>`, `<span ${generatedWarning}>${highlight(example)}</span>`, false);
+            html += tableLine('default slightly_smaller_text', `<abbr ${generatedWarning}>Generated Example</abbr>`, highlight(example), false);
           }
         }
         break;
@@ -1236,7 +1236,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
         const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
         const linkObjType = (targetName: string) => `<a href="/Docs/ObjectTypes/${encodeURIComponent(targetName.toLowerCase())}">${escapeForHTML(targetName)}</a>`;
         html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(ot.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(ot.name)}</span></a>`, false);
-        html += tableLine('default', 'Async Support', `${otAsync.badgeHtml} <span class="text-xs text-slate-500 dark:text-slate-400 ml-1.5 align-middle">${escapeForHTML(otAsync.descriptionText)}</span>`, false);
+        html += tableLine('default', 'Async Support', `${otAsync.badgeHtml} <span class="badge-async-desc">${escapeForHTML(otAsync.descriptionText)}</span>`, false);
         const tCount = tagCountByType.get(ot.cleanName) || 0;
         const mCount = mechCountByType.get(ot.cleanName) || 0;
         if (tCount > 0 || mCount > 0) {
@@ -1266,7 +1266,9 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
     }
 
     html += addHtmlEndParts(obj);
-    obj.htmlContent = html;
+    obj.htmlContent = html
+      .replace(/<\/pre>\s*(?:<br\s*\/?>\s*)+/gi, '</pre>\n')
+      .replace(/(?:<br\s*\/?>\s*)+<pre>/gi, '\n<pre>');
   }
 
   // Sort objects inside lists

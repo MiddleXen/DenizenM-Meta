@@ -29,7 +29,7 @@ function compress(model: SplitDocModel, encoding: Encoding): Promise<Buffer> {
         ? brotli(input, {
             params: {
               [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
-              [zlib.constants.BROTLI_PARAM_QUALITY]: 7,
+              [zlib.constants.BROTLI_PARAM_QUALITY]: 5,
               [zlib.constants.BROTLI_PARAM_SIZE_HINT]: input.length,
             },
           })
