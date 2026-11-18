@@ -33,7 +33,6 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileActiveIndex, setMobileActiveIndex] = useState(-1);
@@ -295,15 +294,13 @@ export function Navbar() {
                   setSearchActiveIndex(-1);
                 }}
                 onFocus={() => {
-                  setIsSearchFocused(true);
                   preloadSuggestions();
                   if (searchValue.trim()) setIsSearchOpen(true);
                 }}
-                onBlur={() => setIsSearchFocused(false)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-8.5 pr-14 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
+                className="w-full pl-8.5 pr-8 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
               />
-              {searchValue ? (
+              {searchValue && (
                 <button
                   type="button"
                   onClick={() => {
@@ -316,8 +313,7 @@ export function Navbar() {
                 >
                   <X className="w-3 h-3" />
                 </button>
-              ) : (
-                !isSearchFocused && null}
+              )}
 
               <SearchAutocomplete
                 query={searchValue}
