@@ -322,7 +322,7 @@ export function Navbar() {
                     aria-hidden="true"
                     className="hidden lg:inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 h-4.5 px-1.5 rounded bg-white/80 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 font-mono text-[9.5px] text-slate-400 pointer-events-none select-none"
                   >
-                    Ctrl K
+                    
                   </kbd>
                 )
               )}

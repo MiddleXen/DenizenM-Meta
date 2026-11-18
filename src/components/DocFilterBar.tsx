@@ -350,7 +350,7 @@ export function DocFilterBar({
 
         {/* Instant 0ms Async & Source Filter Chips */}
         {hasFilterControls && (
-          <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-4xl">
+          <div className="flex flex-col items-center gap-2 max-w-4xl">
             {asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0) && (
               <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
                 <button
