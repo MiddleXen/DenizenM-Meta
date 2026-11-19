@@ -54,13 +54,13 @@ export function HomeSearch() {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
   // Global hotkey Ctrl+K / Cmd+K or / on the Home page
@@ -139,10 +139,10 @@ export function HomeSearch() {
               }}
               onKeyDown={handleKeyDown}
               placeholder="Search commands, tags, mechanisms, events..."
-              className="w-full pl-3.5 pr-28 sm:pr-32 py-3.5 sm:py-4 rounded-2xl bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm sm:text-base focus:outline-none"
+              className="flex-1 min-w-0 pl-3 pr-2 py-3.5 sm:py-4 rounded-2xl bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-base focus:outline-none"
             />
 
-            <div className="absolute right-2 sm:right-2.5 flex items-center gap-1.5">
+            <div className="flex items-center gap-1 pr-2 sm:pr-2.5 flex-shrink-0">
               {searchValue && (
                 <button
                   type="button"
@@ -151,7 +151,7 @@ export function HomeSearch() {
                     setIsOpen(false);
                     inputRef.current?.focus();
                   }}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />
@@ -160,7 +160,7 @@ export function HomeSearch() {
 
               <button
                 type="submit"
-                className="h-9 sm:h-9.5 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
+                className="h-9 sm:h-9.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
               >
                 <span className="leading-none select-none -translate-y-[0.5px]">Search</span>
                 <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
@@ -199,7 +199,7 @@ export function HomeSearch() {
                 setIsOpen(false);
                 triggerSearch(term);
               }}
-              className="inline-flex items-center justify-center px-2.5 py-1 rounded-md font-mono text-xs leading-none bg-white dark:bg-[#0c0e14] hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+              className="inline-flex items-center justify-center px-2.5 py-1.5 sm:py-1 rounded-md font-mono text-xs leading-none bg-white dark:bg-[#0c0e14] hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
             >
               <span className="leading-none">{term}</span>
             </button>

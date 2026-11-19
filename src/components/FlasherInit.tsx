@@ -5,59 +5,37 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import { autoflash, clearPendingFlash, doFlashFor, initFlasher } from '@/lib/flasher';
 
-function ensurePreCopyButton(pre: HTMLElement) {
-  if (pre.dataset.copyReady === '1') return;
-  pre.dataset.copyReady = '1';
-  pre.classList.add('doc-pre-block');
+async function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
 
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'pre-copy-btn';
-  btn.dataset.copyPre = '1';
-  btn.title = 'Copy script snippet';
-  btn.setAttribute('aria-label', 'Copy script snippet');
-  btn.textContent = 'Copy';
-  pre.appendChild(btn);
-}
-
-function ensureCardHeaderActions(row: HTMLElement) {
-  if (row.dataset.actionsReady === '1') return;
-  row.dataset.actionsReady = '1';
-
-  const anchor = row.querySelector('a.doc-anchor-link, a[id]') as HTMLAnchorElement | null;
-  if (!anchor) return;
-  const cell = anchor.closest('td');
-  if (!cell) return;
-
-  const anchorId = anchor.id || anchor.getAttribute('href')?.replace(/^#/, '') || '';
-  const copyText = anchor.dataset.copyText || anchor.textContent?.trim() || '';
-
-  const wrap = document.createElement('span');
-  wrap.className = 'doc-card-actions';
-
-  if (copyText) {
-    const copyBtn = document.createElement('button');
-    copyBtn.type = 'button';
-    copyBtn.className = 'doc-action-btn';
-    copyBtn.dataset.copyEntry = copyText;
-    copyBtn.title = `Copy "${copyText}"`;
-    copyBtn.textContent = 'Copy';
-    wrap.appendChild(copyBtn);
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to execCommand fallback
+    }
   }
 
-  if (anchorId) {
-    const linkBtn = document.createElement('button');
-    linkBtn.type = 'button';
-    linkBtn.className = 'doc-action-btn';
-    linkBtn.dataset.copyLink = anchorId;
-    linkBtn.title = 'Copy direct link to this entry';
-    linkBtn.textContent = '# Link';
-    wrap.appendChild(linkBtn);
-  }
+  if (typeof document === 'undefined') return false;
 
-  if (wrap.childElementCount > 0) {
-    cell.classList.add('doc-title-cell');
-    cell.appendChild(wrap);
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  textarea.style.left = '-9999px';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+
+  try {
+    textarea.select();
+    textarea.setSelectionRange(0, text.length);
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
   }
 }
 
@@ -90,37 +68,46 @@ export function FlasherInit() {
   }, [pathname]);
 
   useEffect(() => {
-    const flashButtonState = (btn: HTMLButtonElement, doneText = '✓ Copied') => {
+    const btnTimers = new WeakMap<HTMLButtonElement, ReturnType<typeof setTimeout>>();
+
+    const flashButtonState = (btn: HTMLButtonElement, doneText = 'Copied') => {
+      const prevTimer = btnTimers.get(btn);
+      if (prevTimer) clearTimeout(prevTimer);
+
       const prev = btn.dataset.origLabel || btn.textContent || 'Copy';
       btn.dataset.origLabel = prev;
       btn.textContent = doneText;
       btn.classList.add('is-copied');
-      setTimeout(() => {
+
+      const timer = setTimeout(() => {
         btn.textContent = prev;
         btn.classList.remove('is-copied');
+        btnTimers.delete(btn);
       }, 1500);
-    };
-
-    const handlePointerOrFocus = (e: Event) => {
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-
-      const pre = target.closest('.doc-list pre') as HTMLElement | null;
-      if (pre) {
-        ensurePreCopyButton(pre);
-      }
-
-      const primaryRow = target.closest('.doc-card tr.table-primary') as HTMLElement | null;
-      if (primaryRow) {
-        ensureCardHeaderActions(primaryRow);
-      }
+      btnTimers.set(btn, timer);
     };
 
     const handleClick = async (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
-      // 1. Toggle related matches when an exactMatch collapsed other search results
+      // 1. Toggle collapsible mobile categories box
+      const catToggleBtn = target.closest('button[data-categories-toggle]') as HTMLButtonElement | null;
+      if (catToggleBtn) {
+        e.preventDefault();
+        const wrapper = catToggleBtn.closest('.categories_wrapper');
+        if (wrapper) {
+          const expanded = wrapper.classList.toggle('is-expanded');
+          catToggleBtn.setAttribute('aria-expanded', String(expanded));
+          const count = wrapper.querySelector('.categories_badge')?.textContent?.trim() || '';
+          catToggleBtn.textContent = expanded
+            ? 'Show fewer categories'
+            : `Show all ${count} categories`;
+        }
+        return;
+      }
+
+      // 2. Toggle related matches when an exactMatch collapsed other search results
       const relatedBtn = target.closest('button[data-related-toggle]') as HTMLButtonElement | null;
       if (relatedBtn) {
         e.preventDefault();
@@ -135,35 +122,18 @@ export function FlasherInit() {
         return;
       }
 
-      // 2. Copy code block (<pre><code>)
+      // 3. Copy code block (<pre><code>)
       const preBtn = target.closest('button[data-copy-pre]') as HTMLButtonElement | null;
       if (preBtn) {
         e.preventDefault();
-        const pre = preBtn.closest('pre');
-        const codeText = pre?.querySelector('code')?.textContent || '';
+        const preContainer = preBtn.closest('.pre-wrap') || preBtn.closest('pre');
+        const codeText = preContainer?.querySelector('code')?.textContent || '';
         if (codeText) {
-          try {
-            await navigator.clipboard.writeText(codeText);
-            flashButtonState(preBtn);
+          const ok = await copyToClipboard(codeText);
+          if (ok) {
+            flashButtonState(preBtn, 'Copied');
             showToast('Code copied to clipboard');
-          } catch {
-            showToast('Failed to copy');
-          }
-        }
-        return;
-      }
-
-      // 3. Copy entry name / tag syntax
-      const entryBtn = target.closest('button[data-copy-entry]') as HTMLButtonElement | null;
-      if (entryBtn) {
-        e.preventDefault();
-        const text = entryBtn.dataset.copyEntry || '';
-        if (text) {
-          try {
-            await navigator.clipboard.writeText(text);
-            flashButtonState(entryBtn);
-            showToast(`Copied: ${text}`);
-          } catch {
+          } else {
             showToast('Failed to copy');
           }
         }
@@ -178,14 +148,14 @@ export function FlasherInit() {
         if (anchorId) {
           const encoded = encodeURIComponent(anchorId);
           const url = `${window.location.origin}${window.location.pathname}#${encoded}`;
-          try {
-            await navigator.clipboard.writeText(url);
+          const ok = await copyToClipboard(url);
+          if (ok) {
             if (window.history?.pushState) {
               window.history.pushState(null, '', `#${encoded}`);
             }
-            flashButtonState(linkBtn, '✓ Linked');
+            flashButtonState(linkBtn, 'Linked');
             showToast('Direct link copied!');
-          } catch {
+          } else {
             showToast('Failed to copy link');
           }
         }
@@ -220,7 +190,9 @@ export function FlasherInit() {
               return;
             }
             e.preventDefault();
-            window.dispatchEvent(new CustomEvent('agy:nav-start'));
+            if (url.pathname !== window.location.pathname || url.search !== window.location.search) {
+              window.dispatchEvent(new CustomEvent('agy:nav-start'));
+            }
             router.push(url.pathname + url.search + url.hash);
           }
         } catch {
@@ -229,15 +201,9 @@ export function FlasherInit() {
       }
     };
 
-    document.addEventListener('pointerover', handlePointerOrFocus, { passive: true });
-    document.addEventListener('focusin', handlePointerOrFocus, { passive: true });
-    document.addEventListener('touchstart', handlePointerOrFocus, { passive: true });
     document.addEventListener('click', handleClick);
 
     return () => {
-      document.removeEventListener('pointerover', handlePointerOrFocus);
-      document.removeEventListener('focusin', handlePointerOrFocus);
-      document.removeEventListener('touchstart', handlePointerOrFocus);
       document.removeEventListener('click', handleClick);
     };
   }, [router]);
@@ -248,10 +214,10 @@ export function FlasherInit() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 dark:bg-zinc-900/95 text-white text-xs font-medium border border-white/10 shadow-xl pointer-events-none animate-fade-in"
+      className="fixed bottom-18 sm:bottom-6 left-1/2 -translate-x-1/2 z-[120] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 dark:bg-zinc-900/95 text-white text-xs font-medium border border-white/10 shadow-xl pointer-events-none animate-fade-in max-w-[calc(100vw-2rem)]"
     >
       <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-      <span className="truncate max-w-[280px] sm:max-w-md">{toastMsg}</span>
+      <span className="truncate max-w-[260px] sm:max-w-md">{toastMsg}</span>
     </div>
   );
 }

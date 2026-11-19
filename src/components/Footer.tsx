@@ -24,11 +24,11 @@ function DiscordIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-slate-200 dark:border-white/10 bg-white/50 dark:bg-black/20 mt-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="w-full border-t border-slate-200 dark:border-white/10 bg-white/50 dark:bg-black/20 mt-10 sm:mt-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand & Info */}
-          <div className="md:col-span-2 space-y-2.5">
+          <div className="sm:col-span-2 space-y-2.5">
             <div className="flex items-center gap-2">
               <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
                 DenizenM Meta
@@ -88,6 +88,16 @@ export function Footer() {
               <li>
                 <Link href="/Docs/ObjectTypes" className="hover:text-emerald-600 transition-colors">
                   Object Types
+                </Link>
+              </li>
+              <li>
+                <Link href="/Docs/Languages" className="hover:text-emerald-600 transition-colors">
+                  Languages
+                </Link>
+              </li>
+              <li>
+                <Link href="/Docs/Actions" className="hover:text-emerald-600 transition-colors">
+                  NPC Actions
                 </Link>
               </li>
             </ul>

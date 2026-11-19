@@ -218,13 +218,55 @@ export function getAsyncTokens(obj: AnyMetaObject): string | null {
 /** Marks the end of one entry; also used as the safe place to split a page into chunks. */
 export const DOC_CARD_END = '</table></div>';
 
+const PRIMARY_ROW_RE =
+  /(<tr class="table-primary"><td class="td-doc-key">[^<]+<\/td>)<td>(<a\s+id="([^"]*)"\s+href="([^"]*)"\s+data-copy-text="([^"]*)"[^>]*class="doc-anchor-link"[^>]*>[\s\S]*?<\/a>)<\/td>(<\/tr>)/;
+const PRE_BLOCK_RE = /<pre><code>([\s\S]*?)<\/code><\/pre>/g;
+const enhancedCardCache = new WeakMap<AnyMetaObject, string>();
+
+/**
+ * Enhances prebuilt card HTML on the server with always-visible header copy/link actions
+ * and scroll-proof `.pre-wrap` wrappers around `<pre><code>` blocks.
+ */
+function enhanceDocCardHtml(rawHtml: string): string {
+  let out = rawHtml.trim();
+
+  if (!out.includes('doc-card-actions')) {
+    out = out.replace(
+      PRIMARY_ROW_RE,
+      (_, keyCol: string, anchorHtml: string, idAttr: string, _href: string, _copyAttr: string, rowEnd: string) => {
+        const actions = idAttr
+          ? `<button type="button" class="doc-action-btn doc-action-link" data-copy-link="${idAttr}" title="Copy direct link to this entry" aria-label="Copy direct link"># Link</button>`
+          : '';
+        return `${keyCol}<td class="doc-title-cell"><div class="doc-title-row">${anchorHtml}<span class="doc-card-actions">${actions}</span></div></td>${rowEnd}`;
+      }
+    );
+  }
+
+  if (out.includes('<pre>') && !out.includes('pre-wrap')) {
+    out = out.replace(PRE_BLOCK_RE, (full, inner: string) => {
+      if (!inner || !inner.trim()) return full;
+      if (inner.includes('\n')) {
+        return `<div class="pre-wrap pre-wrap--multi"><div class="pre-header"><span class="pre-lang">DenizenScript</span><button type="button" class="pre-copy-btn" data-copy-pre="1" title="Copy script snippet" aria-label="Copy script snippet">Copy</button></div><pre><code>${inner}</code></pre></div>`;
+      }
+      return `<div class="pre-wrap pre-wrap--single"><pre><code>${inner}</code></pre><div class="pre-actions"><button type="button" class="pre-copy-btn" data-copy-pre="1" title="Copy script snippet" aria-label="Copy script snippet">Copy</button></div></div>`;
+    });
+  }
+
+  return out;
+}
+
 export function wrapDocCard(obj: AnyMetaObject): string {
   const plugin = getPluginBucket(obj.plugin);
   const asyncTokens = getAsyncTokens(obj);
   const attrs = asyncTokens
     ? ` data-async="${asyncTokens}" data-plugin="${plugin.slug}"`
     : ` data-plugin="${plugin.slug}"`;
-  return `<div class="doc-card"${attrs}>${obj.htmlContent.trim()}</div>`;
+  let enhanced = enhancedCardCache.get(obj);
+  if (enhanced === undefined) {
+    enhanced = enhanceDocCardHtml(obj.htmlContent);
+    enhancedCardCache.set(obj, enhanced);
+  }
+  return `<div class="doc-card"${attrs}>${enhanced}</div>`;
 }
 
 function summarizeFilters(items: AnyMetaObject[]): {
@@ -278,7 +320,8 @@ function renderGroupedCards<T extends AnyMetaObject>(toDisplay: T[], categories:
         : linkable;
     };
 
-    outText += '<div class="categories_wrapper">\n';
+    const isCollapsible = categories.length > 10;
+    outText += `<div class="categories_wrapper${isCollapsible ? ' categories_collapsible' : ''}">\n`;
     outText += `  <div class="categories_header"><span class="categories_title">Categories</span><span class="categories_badge">${categories.length}</span></div>\n`;
     outText += '  <div class="categories_container">\n';
     outText += categories
@@ -288,7 +331,11 @@ function renderGroupedCards<T extends AnyMetaObject>(toDisplay: T[], categories:
         return `    <a href="#${attrId}" data-category-chip="${attrId}" class="category_chip">${escapeForHTML(cat)}</a>`;
       })
       .join('\n');
-    outText += '\n  </div>\n</div>\n';
+    outText += '\n  </div>\n';
+    if (isCollapsible) {
+      outText += `  <button type="button" class="categories_toggle_btn" data-categories-toggle="1" aria-expanded="false">Show all ${categories.length} categories</button>\n`;
+    }
+    outText += '</div>\n';
 
     const byCategory = new Map<string, T[]>();
     for (const obj of toDisplay) {

@@ -16,6 +16,7 @@ interface SearchAutocompleteProps {
   categoryFilter?: string;
   basePath?: string;
   className?: string;
+  inline?: boolean;
 }
 
 let memorySuggestions: SearchSuggestion[] | null = null;
@@ -78,6 +79,7 @@ export function SearchAutocomplete({
   categoryFilter,
   basePath,
   className = '',
+  inline = false,
 }: SearchAutocompleteProps) {
   const router = useRouter();
   const deferredQuery = useDeferredValue(query);
@@ -136,7 +138,9 @@ export function SearchAutocomplete({
         const selectedItem = matches[activeIndex];
         onClose();
         if (onSelect) onSelect(selectedItem);
-        window.dispatchEvent(new CustomEvent('agy:nav-start'));
+        if (typeof window !== 'undefined' && selectedItem.href !== window.location.pathname) {
+          window.dispatchEvent(new CustomEvent('agy:nav-start'));
+        }
         router.push(selectedItem.href);
       }
     };
@@ -223,13 +227,19 @@ export function SearchAutocomplete({
   const handleItemClick = (item: SearchSuggestion) => {
     onClose();
     if (onSelect) onSelect(item);
-    window.dispatchEvent(new CustomEvent('agy:nav-start'));
+    if (typeof window !== 'undefined' && item.href !== window.location.pathname) {
+      window.dispatchEvent(new CustomEvent('agy:nav-start'));
+    }
     router.push(item.href);
   };
 
+  const positionClass = inline
+    ? 'relative mt-2 w-full'
+    : 'absolute left-0 right-0 w-full max-w-full top-full mt-2 z-[100]';
+
   return (
     <div
-      className={`search-autocomplete-panel absolute left-0 right-0 w-full max-w-full top-full mt-2 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden z-[100] text-left box-border ${className}`}
+      className={`search-autocomplete-panel ${positionClass} rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden text-left box-border ${className}`}
     >
       <div className="px-3.5 py-2 text-[11px] font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider flex items-center justify-between border-b border-slate-200/60 dark:border-white/[0.08] bg-slate-50/80 dark:bg-black/25">
         <div className="flex items-center gap-1.5">
@@ -247,7 +257,7 @@ export function SearchAutocomplete({
 
       <div
         ref={listRef}
-        className="max-h-[380px] sm:max-h-[460px] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-white/[0.06] py-1"
+        className="max-h-[50dvh] sm:max-h-[440px] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-white/[0.06] py-1"
         style={{ contentVisibility: 'auto' }}
       >
         {!allSuggestions && !loadFailed ? (
@@ -263,7 +273,7 @@ export function SearchAutocomplete({
                 }}
                 onMouseMove={() => setActiveIndex(idx)}
                 onClick={() => handleItemClick(item)}
-                className={`px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors duration-100 ${
+                className={`px-3.5 py-3 sm:py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors duration-100 ${
                   isSelected
                     ? 'bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-300'
                     : 'text-slate-800 dark:text-zinc-200 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/10 hover:text-emerald-900 dark:hover:text-emerald-300'

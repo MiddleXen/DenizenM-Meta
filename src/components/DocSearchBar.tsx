@@ -37,13 +37,13 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
   }, [initialValue]);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
   // Press `/` anywhere on a Doc page to jump straight to the section search bar
@@ -78,20 +78,21 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
     } else if (e.key === 'Enter') {
       setIsOpen(false);
       const trimmed = filterValue.trim();
-      window.dispatchEvent(new CustomEvent('agy:nav-start'));
-      if (trimmed) {
-        router.push(`${basePath}/${encodeURIComponent(trimmed)}`);
-      } else {
-        setFilterValue('');
-        router.push(basePath);
+      const target = trimmed ? `${basePath}/${encodeURIComponent(trimmed)}` : basePath;
+      if (typeof window !== 'undefined' && window.location.pathname !== target) {
+        window.dispatchEvent(new CustomEvent('agy:nav-start'));
       }
+      if (!trimmed) {
+        setFilterValue('');
+      }
+      router.push(target);
     }
   };
 
   return (
-    <div ref={containerRef} className="relative z-50 w-full max-w-xl mx-auto text-left px-3 sm:px-0">
-      <div className="relative flex items-center w-full rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-150 focus-within:border-slate-400 dark:focus-within:border-white/25">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+    <div ref={containerRef} className="relative z-50 w-full max-w-xl mx-auto text-left">
+      <div className="relative flex items-center w-full rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-150 focus-within:border-[var(--accent-primary)]">
+        <Search className="ml-3.5 w-4 h-4 text-slate-400 pointer-events-none flex-shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -112,8 +113,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
             if (filterValue.trim()) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          style={{ paddingLeft: '2.85rem', paddingRight: '2.5rem' }}
-          className="w-full py-2.5 sm:py-3 rounded-xl bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none"
+          className="flex-1 min-w-0 px-2.5 py-2.5 sm:py-3 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none"
         />
         {filterValue && (
           <button
@@ -122,15 +122,17 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
               setFilterValue('');
               setIsOpen(false);
               if (initialValue) {
-                window.dispatchEvent(new CustomEvent('agy:nav-start'));
+                if (typeof window !== 'undefined' && window.location.pathname !== basePath) {
+                  window.dispatchEvent(new CustomEvent('agy:nav-start'));
+                }
                 router.push(basePath);
               }
               inputRef.current?.focus();
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            className="mr-2 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer flex-shrink-0"
             aria-label="Clear filter"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           </button>
         )}
       </div>

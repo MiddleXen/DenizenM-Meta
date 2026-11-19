@@ -41,8 +41,11 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     if (!trimmed) {
       return;
     }
-    window.dispatchEvent(new CustomEvent('agy:nav-start'));
-    router.push(`/Docs/Search/${encodeURIComponent(trimmed)}`);
+    const target = `/Docs/Search/${encodeURIComponent(trimmed)}`;
+    if (typeof window !== 'undefined' && window.location.pathname !== target) {
+      window.dispatchEvent(new CustomEvent('agy:nav-start'));
+    }
+    router.push(target);
   }, [searchValue, router]);
 
   const value = useMemo(

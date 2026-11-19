@@ -63,6 +63,7 @@ export function DocFilterBar({
   const [catQuery, setCatQuery] = useState('');
   const [scrolledDown, setScrolledDown] = useState(false);
   const catPopoverRef = useRef<HTMLDivElement>(null);
+  const catInputRef = useRef<HTMLInputElement>(null);
 
   const isObjectTypes = basePath.includes('/ObjectTypes');
   const deferLabel = isObjectTypes ? 'Partial Async' : 'Deferrable';
@@ -102,8 +103,19 @@ export function DocFilterBar({
       const catWrapper = root.querySelector<HTMLElement>('.categories_wrapper');
       if (catWrapper) {
         catWrapper.style.display = '';
+        catWrapper.classList.toggle('categories_collapsible', categories.length > 10);
         const badge = catWrapper.querySelector('.categories_badge');
         if (badge) badge.textContent = String(categories.length);
+        const toggleBtn = catWrapper.querySelector<HTMLButtonElement>('[data-categories-toggle]');
+        if (toggleBtn) {
+          toggleBtn.hidden = categories.length <= 10;
+          if (!toggleBtn.hidden) {
+            const expanded = catWrapper.classList.contains('is-expanded');
+            toggleBtn.textContent = expanded
+              ? 'Show fewer categories'
+              : `Show all ${categories.length} categories`;
+          }
+        }
       }
 
       setActiveCategories(toDefaultCategoryItems(categories));
@@ -212,9 +224,20 @@ export function DocFilterBar({
     const catWrapper = root.querySelector<HTMLElement>('.categories_wrapper');
     if (catWrapper) {
       catWrapper.style.display = visibleChipCount === 0 ? 'none' : '';
+      catWrapper.classList.toggle('categories_collapsible', visibleChipCount > 10);
       const badge = catWrapper.querySelector('.categories_badge');
       if (badge) {
         badge.textContent = String(visibleChipCount);
+      }
+      const toggleBtn = catWrapper.querySelector<HTMLButtonElement>('[data-categories-toggle]');
+      if (toggleBtn) {
+        toggleBtn.hidden = visibleChipCount <= 10;
+        if (!toggleBtn.hidden) {
+          const expanded = catWrapper.classList.contains('is-expanded');
+          toggleBtn.textContent = expanded
+            ? 'Show fewer categories'
+            : `Show all ${visibleChipCount} categories`;
+        }
       }
     }
 
@@ -245,7 +268,10 @@ export function DocFilterBar({
 
   // Show floating category button when scrolled down on multi-category pages
   useEffect(() => {
-    if (categories.length <= 4) return;
+    if (categories.length <= 4) {
+      setScrolledDown(false);
+      return;
+    }
     let ticking = false;
     const onScroll = () => {
       if (!ticking) {
@@ -263,7 +289,10 @@ export function DocFilterBar({
 
   useEffect(() => {
     if (!catOpen) return;
-    const onOutside = (e: MouseEvent) => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) {
+      catInputRef.current?.focus();
+    }
+    const onOutside = (e: PointerEvent) => {
       if (catPopoverRef.current && !catPopoverRef.current.contains(e.target as Node)) {
         setCatOpen(false);
       }
@@ -273,10 +302,10 @@ export function DocFilterBar({
         setCatOpen(false);
       }
     };
-    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('pointerdown', onOutside);
     window.addEventListener('keydown', onEscape);
     return () => {
-      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('pointerdown', onOutside);
       window.removeEventListener('keydown', onEscape);
     };
   }, [catOpen]);
@@ -297,28 +326,17 @@ export function DocFilterBar({
     <>
       <div className="mt-3.5 mb-2 relative z-10 flex flex-col items-center gap-2.5 px-2">
         {/* Status Counter Pill */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 max-w-full">
           {isFiltering && filteredCount !== null ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
               <span>Showing</span>
               <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {filteredCount.toLocaleString()}
               </strong>
               <span>filtered of {currentlyShown.toLocaleString()} {itemPlural}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setAsyncFilter('');
-                  setPluginFilter('');
-                }}
-                className="ml-1 inline-flex items-center gap-0.5 text-[11px] font-semibold text-rose-500 hover:text-rose-400 cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
             </span>
           ) : isAll ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
               <span>Showing all</span>
               <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {max.toLocaleString()}
@@ -326,19 +344,19 @@ export function DocFilterBar({
               <span>{itemPlural}</span>
             </span>
           ) : searchText ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none flex-wrap justify-center">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
               <span>Showing</span>
               <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {currentlyShown.toLocaleString()}
               </strong>
               <span>results for</span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] leading-tight">
+              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] leading-tight break-all">
                 {searchText}
               </span>
               <span>out of {max.toLocaleString()} {itemPlural}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-none">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
               <span>Showing</span>
               <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {currentlyShown.toLocaleString()}
@@ -350,16 +368,16 @@ export function DocFilterBar({
 
         {/* Instant 0ms Async & Source Filter Chips */}
         {hasFilterControls && (
-          <div className="flex flex-col items-center gap-2 max-w-4xl">
+          <div className="flex flex-col items-center gap-2 max-w-4xl w-full">
             {asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0) && (
-              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
+              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs max-w-full">
                 <button
                   type="button"
                   onClick={() => setAsyncFilter('')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none transition-colors cursor-pointer ${
+                  className={`px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                     asyncFilter === ''
-                      ? 'bg-slate-900 text-white dark:bg-white/15 dark:text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-slate-900 text-white dark:bg-white/15 dark:text-white border-transparent'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
                   }`}
                 >
                   All Threads
@@ -368,10 +386,10 @@ export function DocFilterBar({
                   <button
                     type="button"
                     onClick={() => setAsyncFilter(asyncFilter === 'safe' ? '' : 'safe')}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       asyncFilter === 'safe'
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-[#00efb2] border border-emerald-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00bc8c]'
+                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-[#00efb2] border-emerald-500/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00bc8c] border-transparent'
                     }`}
                   >
                     <Zap className="w-3 h-3 text-emerald-500 flex-shrink-0" />
@@ -383,10 +401,10 @@ export function DocFilterBar({
                   <button
                     type="button"
                     onClick={() => setAsyncFilter(asyncFilter === 'defer' ? '' : 'defer')}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       asyncFilter === 'defer'
-                        ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'
+                        ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 border-transparent'
                     }`}
                   >
                     <span>{deferLabel}</span>
@@ -397,10 +415,10 @@ export function DocFilterBar({
                   <button
                     type="button"
                     onClick={() => setAsyncFilter(asyncFilter === 'main' ? '' : 'main')}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       asyncFilter === 'main'
-                        ? 'bg-slate-200 dark:bg-white/15 text-slate-900 dark:text-white border border-slate-300 dark:border-white/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-slate-200 dark:bg-white/15 text-slate-900 dark:text-white border-slate-300 dark:border-white/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
                     }`}
                   >
                     <span>Main Thread</span>
@@ -411,17 +429,17 @@ export function DocFilterBar({
             )}
 
             {pluginOptions && pluginOptions.length > 1 && (
-              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
+              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs max-w-full">
                 <span className="pl-1.5 pr-0.5 text-slate-400 hidden sm:inline-flex items-center" title="Filter by plugin source">
                   <Layers className="w-3 h-3" />
                 </span>
                 <button
                   type="button"
                   onClick={() => setPluginFilter('')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none transition-colors cursor-pointer ${
+                  className={`px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                     pluginFilter === ''
-                      ? 'bg-slate-900 text-white dark:bg-white/15 dark:text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-slate-900 text-white dark:bg-white/15 dark:text-white border-transparent'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
                   }`}
                 >
                   All Sources
@@ -431,10 +449,10 @@ export function DocFilterBar({
                     key={opt.slug}
                     type="button"
                     onClick={() => setPluginFilter(pluginFilter === opt.slug ? '' : opt.slug)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-none transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       pluginFilter === opt.slug
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-[#00efb2] border border-emerald-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-[#00efb2] border-emerald-500/40'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
                     }`}
                   >
                     <span>{opt.label}</span>
@@ -468,18 +486,18 @@ export function DocFilterBar({
 
       {/* Floating Quick-Jump Categories Popover when scrolled down on long pages */}
       {categories.length > 4 && activeCategories.length > 1 && scrolledDown && (
-        <div ref={catPopoverRef} className="fixed bottom-6 right-17 z-40">
+        <div ref={catPopoverRef} className="fixed fab-bottom right-16 sm:right-17 z-40">
           {catOpen && (
-            <div className="absolute bottom-11 right-0 w-64 sm:w-72 rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in">
+            <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 bottom-17 sm:bottom-11 sm:w-72 rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in">
               <div className="p-2 border-b border-slate-200/80 dark:border-white/10 flex items-center gap-2 bg-slate-50/80 dark:bg-black/25">
                 <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 ml-1" />
                 <input
+                  ref={catInputRef}
                   type="text"
                   value={catQuery}
                   onChange={(e) => setCatQuery(e.target.value)}
                   placeholder={`Jump to category (${activeCategories.length})...`}
-                  autoFocus
-                  className="w-full bg-transparent text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none py-0.5"
+                  className="w-full bg-transparent text-base sm:text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none py-0.5"
                 />
                 {catQuery && (
                   <button
@@ -491,7 +509,7 @@ export function DocFilterBar({
                   </button>
                 )}
               </div>
-              <div className="max-h-64 overflow-y-auto p-1.5 grid grid-cols-1 gap-0.5">
+              <div className="max-h-[45dvh] sm:max-h-64 overflow-y-auto overscroll-contain p-1.5 grid grid-cols-1 gap-0.5">
                 {filteredCategories.length > 0 ? (
                   filteredCategories.map((item) => (
                     <button
@@ -501,7 +519,7 @@ export function DocFilterBar({
                         setCatOpen(false);
                         doFlashFor(item.anchorId);
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer truncate"
+                      className="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer truncate"
                     >
                       {item.label}
                     </button>
@@ -519,7 +537,7 @@ export function DocFilterBar({
             type="button"
             onClick={() => setCatOpen((v) => !v)}
             aria-label="Jump to category"
-            className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 dark:bg-[#151921]/95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-sm text-xs font-semibold transition-colors cursor-pointer"
+            className="h-10.5 sm:h-9 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 dark:bg-[#151921]/95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-sm text-xs font-semibold transition-colors cursor-pointer"
           >
             <ListFilter className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Categories</span>

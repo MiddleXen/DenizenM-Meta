@@ -22,6 +22,7 @@
     /* Theme Accents */
     --accent-primary: #059669;
     --accent-secondary: #047857;
+    --header-bg: rgba(255, 255, 255, 0.92);
     --ambient-glow:
       radial-gradient(1000px circle at 50% -120px, rgba(5, 150, 105, 0.09), transparent 70%),
       radial-gradient(800px circle at 85% 85%, rgba(16, 185, 129, 0.05), transparent 65%),
@@ -46,6 +47,7 @@
 
     --accent-primary: #00bc8c;
     --accent-secondary: #00efb2;
+    --header-bg: rgba(10, 13, 18, 0.92);
     --ambient-glow:
       radial-gradient(1100px circle at 50% -130px, rgba(0, 188, 140, 0.15), transparent 70%),
       radial-gradient(900px circle at 85% 80%, rgba(0, 188, 140, 0.06), transparent 65%),
@@ -70,6 +72,7 @@
 
     --accent-primary: #10b981;
     --accent-secondary: #34d399;
+    --header-bg: rgba(0, 0, 0, 0.92);
     --ambient-glow:
       radial-gradient(1000px circle at 50% -140px, rgba(0, 188, 140, 0.10), transparent 65%),
       radial-gradient(800px circle at 85% 85%, rgba(16, 185, 129, 0.04), transparent 60%),
@@ -94,6 +97,7 @@
 
     --accent-primary: #38bdf8;
     --accent-secondary: #7dd3fc;
+    --header-bg: rgba(15, 17, 21, 0.92);
     --ambient-glow:
       radial-gradient(1100px circle at 50% -130px, rgba(56, 189, 248, 0.13), transparent 70%),
       radial-gradient(900px circle at 85% 80%, rgba(14, 165, 233, 0.06), transparent 65%),
@@ -303,7 +307,7 @@ table.table, table {
   max-width: 1440px !important;
   display: table !important;
   table-layout: fixed !important;
-  border: 1px solid var(--table-border) !important;
+  border: 1px solid var(--table-border);
   background-color: var(--card-bg) !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
@@ -311,7 +315,7 @@ table.table, table {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.15);
-  contain: layout style paint;
+  contain: layout style;
 }
 
 /* Every doc entry is wrapped server-side in <div class="doc-card">. Chromium ignores
@@ -539,6 +543,12 @@ tr.table-secondary td {
   text-decoration: none !important;
 }
 
+.theme-graphite .source-github-btn:hover {
+  background: rgba(56, 189, 248, 0.15) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  color: #38bdf8 !important;
+}
+
 :root:not(.dark) .source-github-btn {
   color: #334155 !important;
   background: #f1f5f9 !important;
@@ -612,6 +622,10 @@ tr.table-primary {
 tr.table-primary td {
   border-top: 1px solid var(--table-border);
   border-bottom: 1px solid var(--row-border);
+}
+
+tr.table-primary:first-child td {
+  border-top: none;
 }
 
 tr.table-warning {
@@ -762,6 +776,12 @@ a.group, a.group *, a.group:hover, a.group:hover * {
   box-sizing: border-box !important;
 }
 
+.theme-graphite .categories_badge {
+  background-color: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
 .categories_container {
   display: flex;
   flex-wrap: wrap;
@@ -771,6 +791,10 @@ a.group, a.group *, a.group:hover, a.group:hover * {
   margin: 0 auto;
   padding: 0;
   max-width: 100%;
+}
+
+.categories_toggle_btn {
+  display: none;
 }
 
 .categories_container a,
@@ -796,6 +820,13 @@ a.group, a.group *, a.group:hover, a.group:hover * {
   border-color: rgba(16, 185, 129, 0.4);
   color: #10b981;
   transform: translateY(-1px);
+}
+
+.theme-graphite .categories_container a:hover,
+.theme-graphite .category_chip:hover {
+  background-color: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
 }
 
 :root:not(.dark) .categories_container a:hover,
@@ -835,28 +866,10 @@ a.group, a.group *, a.group:hover, a.group:hover * {
 
 #search_bar {
   width: 100%;
-  max-width: 100%;
-  padding: 0.7rem 1.15rem 0.7rem 2.85rem;
-  border: 1px solid var(--table-border);
-  border-radius: 10px;
-  background-color: var(--input-bg);
+  min-width: 0;
   color: var(--text-page);
-  font-size: 0.95rem;
   outline: none;
-  margin: 0 auto;
-  display: block;
   box-sizing: border-box;
-  transition: border-color 0.15s ease;
-}
-
-#search_bar:focus {
-  border-color: rgba(0, 188, 140, 0.45);
-  box-shadow: none;
-}
-
-.theme-graphite #search_bar:focus {
-  border-color: rgba(56, 189, 248, 0.45);
-  box-shadow: none;
 }
 
 .meta_link_badge {
@@ -890,10 +903,29 @@ a.group, a.group *, a.group:hover, a.group:hover * {
   animation: flashAnim 1.5s ease-out;
 }
 
+table.flash {
+  animation: flashCardAnim 1.5s ease-out;
+}
+
 @keyframes flashAnim {
   0% { background-color: transparent; }
   20% { background-color: var(--flash-bg); }
   100% { background-color: transparent; }
+}
+
+@keyframes flashCardAnim {
+  0% {
+    border-color: var(--table-border);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.15);
+  }
+  20% {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary), 0 0 22px var(--flash-bg);
+  }
+  100% {
+    border-color: var(--table-border);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.15);
+  }
 }
 
 /* Used by the theme dropdown in the navbar; Tailwind v4 has no built-in `animate-fade-in`. */
@@ -917,13 +949,13 @@ html, body {
   scrollbar-width: thin;
   scrollbar-color: #475569 transparent;
 }
-:root:not(.dark) html, :root:not(.dark) body {
+:root:not(.dark), :root:not(.dark) body {
   scrollbar-color: #cbd5e1 transparent;
 }
-.theme-black html, .theme-black body {
+html.theme-black, html.theme-black body {
   scrollbar-color: #27272a transparent;
 }
-.theme-graphite html, .theme-graphite body {
+html.theme-graphite, html.theme-graphite body {
   scrollbar-color: #334155 transparent;
 }
 
@@ -1032,136 +1064,8 @@ html, body {
   border: 1px solid #cbd5e1 !important;
 }
 
-/* Mobile Table Optimizations */
-@media (max-width: 640px) {
-  table.table, table {
-    width: 100% !important;
-    margin: 10px 0 !important;
-    display: block !important;
-    border-radius: 10px !important;
-  }
-
-  .doc-card {
-    margin: 10px 0;
-  }
-
-  .doc-card > table.table {
-    margin: 0 !important;
-  }
-
-  table tbody {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  table tr {
-    display: flex !important;
-    flex-direction: column !important;
-    padding: 0.6rem 0.75rem !important;
-    border-top: 1px solid var(--row-border) !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  table tr:first-child {
-    border-top: none !important;
-  }
-
-  table td {
-    padding: 0 !important;
-    border: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    word-break: break-word !important;
-  }
-
-  .td-doc-key {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
-    padding: 0 0 0.2rem 0 !important;
-    margin: 0 !important;
-    text-align: left !important;
-    font-size: 0.725rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    font-weight: 700 !important;
-    opacity: 0.75 !important;
-  }
-
-  table td:nth-child(2) {
-    width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-size: 0.925rem !important;
-    line-height: 1.55 !important;
-  }
-
-  table tr.tr-returns {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 0.35rem !important;
-    padding-top: 0.45rem !important;
-    padding-bottom: 0.45rem !important;
-  }
-
-  table tr.tr-returns .td-doc-key {
-    width: auto !important;
-    display: inline-flex !important;
-    align-items: center !important;
-  }
-
-  table tr.tr-returns .td-doc-key::after {
-    content: ":";
-    margin-right: 0.2rem;
-  }
-
-  table tr.tr-returns td:nth-child(2) {
-    width: auto !important;
-    display: inline-flex !important;
-    align-items: center !important;
-  }
-
-  table td a[href^="/Docs/ObjectTypes/"],
-  .badge-async-safe,
-  .badge-async-defer,
-  .badge-async-main,
-  table td > .meta_link_badge:first-child,
-  table td > span > .meta_link_badge:first-child {
-    margin-left: 0 !important;
-  }
-
-  .source-github-btn {
-    margin-left: 0 !important;
-    margin-top: 2px !important;
-  }
-
-  .doc_name {
-    font-size: 1.25rem !important;
-    line-height: 1.35 !important;
-    word-break: break-word !important;
-  }
-
-  table td pre {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
-    font-size: 0.825rem !important;
-    padding: 0.5rem 0.65rem !important;
-    margin: 0.25rem 0 !important;
-  }
-
-  #search_bar {
-    font-size: 0.9rem !important;
-    padding: 0.6rem 0.85rem 0.6rem 2.75rem !important;
-  }
-}
-
 /* ============================================================
-   Scripter UX Enhancements: Copy Buttons, Cross-Links & Related Matches
+   Scripter UX Enhancements: Always-Visible Copy UI, Cross-Links & Related Matches
    ============================================================ */
 
 .jumbotron code {
@@ -1173,40 +1077,137 @@ html, body {
   color: var(--accent-primary);
 }
 
-pre.doc-pre-block {
-  position: relative;
-  padding-right: 4.25rem !important;
+/* Scroll-proof code block wrapper: .pre-wrap owns border/background and pins the copy control
+   outside the horizontally scrolling <pre> viewport. */
+.pre-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0.35rem 0;
+  background-color: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.pre-wrap--single {
+  display: flex;
+  align-items: stretch;
+}
+
+.pre-wrap--single > pre {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.pre-wrap--multi {
+  display: flex;
+  flex-direction: column;
+}
+
+.pre-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+  background-color: var(--primary-row-bg);
+  border-bottom: 1px solid var(--code-border);
+}
+
+.pre-lang {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.pre-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.4rem;
+  background-color: var(--primary-row-bg);
+  border-left: 1px solid var(--code-border);
+}
+
+table td .pre-wrap > pre,
+.pre-wrap > pre {
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0.55rem 0.85rem !important;
+  font-size: 0.85rem !important;
+  line-height: 1.55 !important;
+  white-space: pre !important;
+  tab-size: 4 !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box !important;
+  width: 100%;
+  max-width: 100%;
 }
 
 .pre-copy-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
   color: var(--text-muted);
   background-color: var(--card-bg);
   border: 1px solid var(--table-border);
-  opacity: 0;
+  opacity: 1;
   cursor: pointer;
   user-select: none;
-  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+  flex-shrink: 0;
+  transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
 }
 
-pre.doc-pre-block:hover .pre-copy-btn,
-pre.doc-pre-block:focus-within .pre-copy-btn,
-.pre-copy-btn.is-copied {
-  opacity: 1;
+.pre-copy-btn::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2' ry='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2' ry='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.pre-copy-btn:hover {
+.pre-copy-btn.is-copied::before,
+.doc-action-link.is-copied::before {
+  content: "";
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.pre-copy-btn:hover,
+.doc-action-btn:hover {
   color: var(--accent-primary);
   border-color: var(--accent-primary);
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.theme-graphite .pre-copy-btn:hover,
+.theme-graphite .doc-action-btn:hover {
+  background-color: rgba(56, 189, 248, 0.1);
 }
 
 .pre-copy-btn.is-copied,
@@ -1216,46 +1217,48 @@ pre.doc-pre-block:focus-within .pre-copy-btn,
   background-color: rgba(16, 185, 129, 0.12) !important;
 }
 
-.doc-title-cell {
-  position: relative;
-  padding-right: 8.5rem !important;
+.doc-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.doc-title-row > .doc-anchor-link {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
 }
 
 .doc-card-actions {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-
-.doc-card:hover .doc-card-actions,
-.doc-card:focus-within .doc-card-actions {
+  gap: 6px;
+  flex-shrink: 0;
   opacity: 1;
 }
 
 .doc-action-btn {
-  height: 23px;
-  padding: 0 8px;
-  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 25px;
+  padding: 0 9px;
+  border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
   color: var(--text-muted);
   background-color: var(--card-bg);
   border: 1px solid var(--table-border);
   cursor: pointer;
   user-select: none;
-}
-
-.doc-action-btn:hover {
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
+  transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
 }
 
 /* ObjectType -> Tags & Mechanisms Cross-Link Pills */
@@ -1328,18 +1331,248 @@ pre.doc-pre-block:focus-within .pre-copy-btn,
   margin-top: 12px;
 }
 
-@media (hover: none), (max-width: 640px) {
-  .pre-copy-btn {
-    opacity: 0.9;
+/* Floating Action Buttons safe-area bottom spacing */
+.fab-bottom {
+  bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 640px) {
+  .fab-bottom {
+    bottom: 1.5rem;
   }
-  .doc-title-cell {
-    padding-right: 0 !important;
+}
+
+/* ============================================================
+   Mobile Table & Layout Optimizations
+   ============================================================ */
+@media (max-width: 640px) {
+  .jumbotron {
+    padding: 1.25rem 0.5rem 0.85rem 0.5rem;
+    margin-bottom: 0.5rem;
   }
+
+  .categories_wrapper {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.65rem 0.75rem;
+    margin: 0.75rem auto 1rem auto;
+  }
+
+  .categories_container {
+    gap: 6px;
+  }
+
+  .categories_container a,
+  .category_chip {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .categories_collapsible:not(.is-expanded) .categories_container {
+    max-height: 7.5rem;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .categories_collapsible:not(.is-expanded) .categories_container::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2rem;
+    background: linear-gradient(to bottom, transparent, var(--card-bg));
+    pointer-events: none;
+  }
+
+  .categories_toggle_btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.6rem;
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    background-color: var(--code-bg);
+    border: 1px solid var(--table-border);
+    cursor: pointer;
+  }
+
+  table.table, table {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 10px 0 !important;
+    display: block !important;
+    border-radius: 10px !important;
+  }
+
+  .doc-card {
+    margin: 10px 0;
+  }
+
+  .doc-card > table.table {
+    margin: 0 !important;
+  }
+
+  table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  table tr {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0.65rem 0.75rem !important;
+    border-top: 1px solid var(--row-border) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  table tr:first-child {
+    border-top: none !important;
+  }
+
+  table td {
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    word-break: break-word !important;
+  }
+
+  table td a {
+    overflow-wrap: anywhere;
+  }
+
+  .td-doc-key {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    padding: 0 0 0.2rem 0 !important;
+    margin: 0 !important;
+    text-align: left !important;
+    font-size: 0.725rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-weight: 700 !important;
+    opacity: 0.75 !important;
+  }
+
+  table td:nth-child(2) {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 0.925rem !important;
+    line-height: 1.55 !important;
+  }
+
+  table tr.tr-returns {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+
+  table tr.tr-returns .td-doc-key {
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding-bottom: 0 !important;
+  }
+
+  table tr.tr-returns .td-doc-key::after {
+    content: ":";
+    margin-right: 0.2rem;
+  }
+
+  table tr.tr-returns td:nth-child(2) {
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  .badge-async-desc {
+    display: block;
+    margin-left: 0;
+    margin-top: 0.3rem;
+    line-height: 1.4;
+  }
+
+  table td a[href^="/Docs/ObjectTypes/"],
+  .badge-async-safe,
+  .badge-async-defer,
+  .badge-async-main,
+  table td > .meta_link_badge:first-child,
+  table td > span > .meta_link_badge:first-child {
+    margin-left: 0 !important;
+  }
+
+  .source-github-btn {
+    margin-left: 0 !important;
+    margin-top: 2px !important;
+  }
+
+  .doc_name {
+    font-size: 1.2rem !important;
+    line-height: 1.35 !important;
+    word-break: break-word !important;
+  }
+
+  .doc-title-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem 0.6rem;
+  }
+
   .doc-card-actions {
-    position: static;
-    transform: none;
-    opacity: 1;
-    display: flex;
-    margin-top: 6px;
+    width: auto;
+    flex-wrap: wrap;
+  }
+
+  .doc-action-btn,
+  .pre-copy-btn {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11.5px;
+  }
+
+  .related-matches-wrapper {
+    width: 100%;
+  }
+
+  .related-matches-toggle {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    padding: 0.6rem 0.85rem;
+  }
+
+  table td pre {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    font-size: 0.825rem !important;
+    padding: 0.5rem 0.65rem !important;
+    margin: 0.25rem 0 !important;
+  }
+
+  table td .pre-wrap > pre {
+    padding: 0.5rem 0.7rem !important;
+    font-size: 0.8125rem !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
   }
 }

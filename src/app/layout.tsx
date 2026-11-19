@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { ThemeProvider, Theme } from '@/components/ThemeProvider';
 import { Navbar } from '@/components/Navbar';
@@ -9,6 +9,16 @@ import { NavigationProgressBar } from '@/components/NavigationProgressBar';
 import { FlasherInit } from '@/components/FlasherInit';
 import { Suspense } from 'react';
 import './globals.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
+    { media: '(prefers-color-scheme: dark)', color: '#080a0f' },
+  ],
+};
 
 export const metadata: Metadata = {
   title: 'DenizenM Meta Documentation',

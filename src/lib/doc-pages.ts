@@ -31,7 +31,7 @@ const MAX_CACHE_ENTRIES = 120;
  * Bump whenever the generated HTML or the head/rest split changes, so browsers never combine a
  * freshly rendered head with a rest part cached (max-age) from the previous format.
  */
-const REST_FORMAT = '5';
+const REST_FORMAT = '7';
 
 const LIST_START = '<div class="doc-list">';
 const LIST_END = '</div>';

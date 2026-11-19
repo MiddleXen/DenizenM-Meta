@@ -8,25 +8,61 @@ export function NavigationProgressBar() {
   const [active, setActive] = useState(false);
   const [complete, setComplete] = useState(false);
   const isFirstRender = useRef(true);
+  const lastPathnameRef = useRef(pathname);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    lastPathnameRef.current = pathname;
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
+
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
     setComplete(true);
-    const timer = setTimeout(() => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(() => {
       setActive(false);
       setComplete(false);
+      resetTimerRef.current = null;
     }, 350);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+    };
   }, [pathname]);
 
   useEffect(() => {
     const startBar = () => {
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+
       setComplete(false);
       setActive(true);
+
+      // Safety auto-dismiss if a transition was aborted or resolved without changing pathname
+      safetyTimerRef.current = setTimeout(() => {
+        setComplete(true);
+        resetTimerRef.current = setTimeout(() => {
+          setActive(false);
+          setComplete(false);
+          resetTimerRef.current = null;
+        }, 350);
+        safetyTimerRef.current = null;
+      }, 6000);
+    };
+
+    const handlePopState = () => {
+      if (window.location.pathname !== lastPathnameRef.current) {
+        startBar();
+      }
     };
 
     const handleAnchorClick = (e: MouseEvent) => {
@@ -54,13 +90,15 @@ export function NavigationProgressBar() {
     };
 
     window.addEventListener('click', handleAnchorClick, true);
-    window.addEventListener('popstate', startBar);
+    window.addEventListener('popstate', handlePopState);
     window.addEventListener('agy:nav-start', startBar);
 
     return () => {
       window.removeEventListener('click', handleAnchorClick, true);
-      window.removeEventListener('popstate', startBar);
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('agy:nav-start', startBar);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     };
   }, []);
 

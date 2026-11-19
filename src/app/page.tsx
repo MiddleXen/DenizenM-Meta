@@ -144,7 +144,7 @@ export default async function HomePage() {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-14 pb-10 text-center">
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 pb-6 sm:pb-10 text-center">
         {/* Main Title: Restored authentic DenizenM Documentation */}
         <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15]">
           DenizenM{' '}
@@ -181,14 +181,14 @@ export default async function HomePage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4.5">
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
               <Link
                 key={cat.href}
                 href={cat.href}
-                className={`group relative p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] ${cat.hoverBorder} transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline shadow-xs`}
+                className={`group relative p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] ${cat.hoverBorder} transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline shadow-xs`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
@@ -226,14 +226,14 @@ export default async function HomePage() {
       </section>
 
       {/* External Resources Section (Seamless dark cards) */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-10 sm:pb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4.5">
           {/* Beginner's Guide Card */}
           <a
             href="https://guide.denizenscript.com/"
             target="_blank"
             rel="noreferrer"
-            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(0,188,140,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
+            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(0,188,140,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
@@ -260,7 +260,7 @@ export default async function HomePage() {
             href="https://discord.gg/F2nftfP3nq"
             target="_blank"
             rel="noreferrer"
-            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-[#5865F2]/50 hover:shadow-[0_8px_30px_rgba(88,101,242,0.15)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
+            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-[#5865F2]/50 hover:shadow-[0_8px_30px_rgba(88,101,242,0.15)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
@@ -287,7 +287,7 @@ export default async function HomePage() {
             href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
             target="_blank"
             rel="noreferrer"
-            className="p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
+            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
