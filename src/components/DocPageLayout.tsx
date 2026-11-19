@@ -29,10 +29,10 @@ export function DocPageLayout({
     <div className="w-full pb-16">
       <div className="center_helper relative z-30 px-3 sm:px-4 max-w-full">
         <div className="jumbotron">
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-3 text-slate-900 dark:text-white">
+          <h1 className="font-display text-3xl sm:text-5xl font-bold tracking-[-0.035em] mb-3 text-[var(--text-page)]">
             {title}
           </h1>
-          <div className="text-sm sm:text-base leading-relaxed max-w-2xl mx-auto text-slate-600 dark:text-slate-400">
+          <div className="text-sm sm:text-base leading-relaxed max-w-2xl mx-auto text-[var(--text-muted)]">
             {description}
           </div>
         </div>

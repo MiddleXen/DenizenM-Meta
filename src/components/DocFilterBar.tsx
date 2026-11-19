@@ -328,37 +328,37 @@ export function DocFilterBar({
         {/* Status Counter Pill */}
         <div className="flex flex-wrap items-center justify-center gap-2 max-w-full">
           {isFiltering && filteredCount !== null ? (
-            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--card-bg)] border border-[var(--table-border)] text-[var(--text-muted)] shadow-2xs leading-snug max-w-full">
               <span>Showing</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+              <strong className="text-[var(--accent-primary)] font-bold">
                 {filteredCount.toLocaleString()}
               </strong>
               <span>filtered of {currentlyShown.toLocaleString()} {itemPlural}</span>
             </span>
           ) : isAll ? (
-            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--card-bg)] border border-[var(--table-border)] text-[var(--text-muted)] shadow-2xs leading-snug max-w-full">
               <span>Showing all</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+              <strong className="text-[var(--accent-primary)] font-bold">
                 {max.toLocaleString()}
               </strong>
               <span>{itemPlural}</span>
             </span>
           ) : searchText ? (
-            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
+            <span className="inline-flex flex-wrap items-baseline justify-center text-center gap-x-1.5 gap-y-1 text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--card-bg)] border border-[var(--table-border)] text-[var(--text-muted)] shadow-2xs leading-normal max-w-full">
               <span>Showing</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+              <strong className="text-[var(--accent-primary)] font-bold">
                 {currentlyShown.toLocaleString()}
               </strong>
               <span>results for</span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] leading-tight break-all">
+              <span className="inline-block px-1.5 py-[1px] rounded bg-[var(--code-bg)] border border-[var(--code-border)] text-[var(--accent-primary)] font-mono text-[11px] leading-[1.35] break-all">
                 {searchText}
               </span>
               <span>out of {max.toLocaleString()} {itemPlural}</span>
             </span>
           ) : (
-            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-2xs leading-snug max-w-full">
+            <span className="inline-flex flex-wrap items-center justify-center text-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-[var(--card-bg)] border border-[var(--table-border)] text-[var(--text-muted)] shadow-2xs leading-snug max-w-full">
               <span>Showing</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+              <strong className="text-[var(--accent-primary)] font-bold">
                 {currentlyShown.toLocaleString()}
               </strong>
               <span>results out of {max.toLocaleString()} {itemPlural}</span>
@@ -370,14 +370,14 @@ export function DocFilterBar({
         {hasFilterControls && (
           <div className="flex flex-col items-center gap-2 max-w-4xl w-full">
             {asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0) && (
-              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs max-w-full">
+              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-2xs max-w-full">
                 <button
                   type="button"
                   onClick={() => setAsyncFilter('')}
                   className={`px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                     asyncFilter === ''
-                      ? 'bg-slate-900 text-white dark:bg-white/15 dark:text-white border-transparent'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] border-[var(--accent-border)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-page)] border-transparent'
                   }`}
                 >
                   All Threads
@@ -388,8 +388,8 @@ export function DocFilterBar({
                     onClick={() => setAsyncFilter(asyncFilter === 'safe' ? '' : 'safe')}
                     className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       asyncFilter === 'safe'
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-[#00efb2] border-emerald-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-[#00bc8c] border-transparent'
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                        : 'text-[var(--text-muted)] hover:text-emerald-600 dark:hover:text-emerald-300 border-transparent'
                     }`}
                   >
                     <Zap className="w-3 h-3 text-emerald-500 flex-shrink-0" />
@@ -403,8 +403,8 @@ export function DocFilterBar({
                     onClick={() => setAsyncFilter(asyncFilter === 'defer' ? '' : 'defer')}
                     className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       asyncFilter === 'defer'
-                        ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 border-transparent'
+                        ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/40'
+                        : 'text-[var(--text-muted)] hover:text-sky-600 dark:hover:text-sky-400 border-transparent'
                     }`}
                   >
                     <span>{deferLabel}</span>
@@ -417,8 +417,8 @@ export function DocFilterBar({
                     onClick={() => setAsyncFilter(asyncFilter === 'main' ? '' : 'main')}
                     className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       asyncFilter === 'main'
-                        ? 'bg-slate-200 dark:bg-white/15 text-slate-900 dark:text-white border-slate-300 dark:border-white/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
+                        ? 'bg-[var(--code-bg)] text-[var(--text-page)] border-[var(--table-border-hover)]'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-page)] border-transparent'
                     }`}
                   >
                     <span>Main Thread</span>
@@ -429,8 +429,8 @@ export function DocFilterBar({
             )}
 
             {pluginOptions && pluginOptions.length > 1 && (
-              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs max-w-full">
-                <span className="pl-1.5 pr-0.5 text-slate-400 hidden sm:inline-flex items-center" title="Filter by plugin source">
+              <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-2xs max-w-full">
+                <span className="pl-1.5 pr-0.5 text-[var(--text-muted)] hidden sm:inline-flex items-center" title="Filter by plugin source">
                   <Layers className="w-3 h-3" />
                 </span>
                 <button
@@ -438,8 +438,8 @@ export function DocFilterBar({
                   onClick={() => setPluginFilter('')}
                   className={`px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                     pluginFilter === ''
-                      ? 'bg-slate-900 text-white dark:bg-white/15 dark:text-white border-transparent'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] border-[var(--accent-border)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-page)] border-transparent'
                   }`}
                 >
                   All Sources
@@ -451,8 +451,8 @@ export function DocFilterBar({
                     onClick={() => setPluginFilter(pluginFilter === opt.slug ? '' : opt.slug)}
                     className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
                       pluginFilter === opt.slug
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-[#00efb2] border-emerald-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent'
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] border-[var(--accent-border)]'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-page)] border-transparent'
                     }`}
                   >
                     <span>{opt.label}</span>
@@ -465,8 +465,8 @@ export function DocFilterBar({
         )}
 
         {isFiltering && filteredCount === 0 && (
-          <div className="mt-4 w-full max-w-md mx-auto px-5 py-6 rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/10 text-center shadow-sm">
-            <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
+          <div className="mt-4 w-full max-w-md mx-auto px-5 py-6 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] text-center shadow-sm">
+            <p className="text-xs sm:text-sm font-medium text-[var(--text-muted)]">
               No entries match the combination of selected filters.
             </p>
             <button
@@ -475,7 +475,7 @@ export function DocFilterBar({
                 setAsyncFilter('');
                 setPluginFilter('');
               }}
-              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
+              className="btn-accent mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
               <span>Reset Filters</span>
@@ -488,22 +488,22 @@ export function DocFilterBar({
       {categories.length > 4 && activeCategories.length > 1 && scrolledDown && (
         <div ref={catPopoverRef} className="fixed fab-bottom right-16 sm:right-17 z-40">
           {catOpen && (
-            <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 bottom-17 sm:bottom-11 sm:w-72 rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-fade-in">
-              <div className="p-2 border-b border-slate-200/80 dark:border-white/10 flex items-center gap-2 bg-slate-50/80 dark:bg-black/25">
-                <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 ml-1" />
+            <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 bottom-17 sm:bottom-11 sm:w-72 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-2xl overflow-hidden animate-fade-in">
+              <div className="p-2 border-b border-[var(--row-border)] flex items-center gap-2 bg-[var(--primary-row-bg)]">
+                <Search className="w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0 ml-1" />
                 <input
                   ref={catInputRef}
                   type="text"
                   value={catQuery}
                   onChange={(e) => setCatQuery(e.target.value)}
                   placeholder={`Jump to category (${activeCategories.length})...`}
-                  className="w-full bg-transparent text-base sm:text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none py-0.5"
+                  className="w-full bg-transparent text-base sm:text-xs text-[var(--text-page)] placeholder-[var(--text-muted)] focus:outline-none py-0.5"
                 />
                 {catQuery && (
                   <button
                     type="button"
                     onClick={() => setCatQuery('')}
-                    className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    className="text-[var(--text-muted)] hover:text-[var(--text-page)] cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -519,13 +519,13 @@ export function DocFilterBar({
                         setCatOpen(false);
                         doFlashFor(item.anchorId);
                       }}
-                      className="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer truncate"
+                      className="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-lg text-xs font-medium text-[var(--text-page)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-primary)] transition-colors cursor-pointer truncate"
                     >
                       {item.label}
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-4 text-xs text-center text-slate-400">
+                  <div className="px-3 py-4 text-xs text-center text-[var(--text-muted)]">
                     No matching categories
                   </div>
                 )}
@@ -537,7 +537,7 @@ export function DocFilterBar({
             type="button"
             onClick={() => setCatOpen((v) => !v)}
             aria-label="Jump to category"
-            className="h-10.5 sm:h-9 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 dark:bg-[#151921]/95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-sm text-xs font-semibold transition-colors cursor-pointer"
+            className="h-10.5 sm:h-9 px-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--card-bg)]/95 text-[var(--text-page)] border border-[var(--table-border)] hover:border-[var(--accent-border)] hover:text-[var(--accent-primary)] shadow-sm text-xs font-semibold transition-colors cursor-pointer"
           >
             <ListFilter className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Categories</span>

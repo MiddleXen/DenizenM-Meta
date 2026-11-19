@@ -115,8 +115,8 @@ export function HomeSearch() {
     <div ref={containerRef} className="w-full max-w-full relative z-50">
       <div className="relative w-full">
         <form onSubmit={handleSearch} className="w-full">
-          <div className="group relative flex items-center w-full rounded-2xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/90 dark:border-white/[0.08] shadow-xs transition-all duration-200 focus-within:border-slate-400 dark:focus-within:border-white/25">
-            <div className="pl-4 sm:pl-4.5 flex items-center justify-center pointer-events-none text-slate-400 group-focus-within:text-slate-600 dark:group-focus-within:text-slate-200">
+          <div className="search-shell group relative flex items-center w-full rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-[var(--card-shadow)]">
+            <div className="pl-4 sm:pl-4.5 flex items-center justify-center pointer-events-none text-[var(--text-muted)] group-focus-within:text-[var(--accent-primary)]">
               <Search className="w-5 h-5 transition-colors" />
             </div>
 
@@ -139,7 +139,7 @@ export function HomeSearch() {
               }}
               onKeyDown={handleKeyDown}
               placeholder="Search commands, tags, mechanisms, events..."
-              className="flex-1 min-w-0 pl-3 pr-2 py-3.5 sm:py-4 rounded-2xl bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-base focus:outline-none"
+              className="flex-1 min-w-0 pl-3 pr-2 py-3.5 sm:py-4 rounded-2xl bg-transparent text-[var(--text-page)] placeholder-[var(--text-muted)] text-base focus:outline-none"
             />
 
             <div className="flex items-center gap-1 pr-2 sm:pr-2.5 flex-shrink-0">
@@ -151,7 +151,7 @@ export function HomeSearch() {
                     setIsOpen(false);
                     inputRef.current?.focus();
                   }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text-page)] transition-colors cursor-pointer"
                   aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />
@@ -160,7 +160,7 @@ export function HomeSearch() {
 
               <button
                 type="submit"
-                className="h-9 sm:h-9.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
+                className="btn-accent h-9 sm:h-9.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
               >
                 <span className="leading-none select-none -translate-y-[0.5px]">Search</span>
                 <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
@@ -186,7 +186,7 @@ export function HomeSearch() {
 
       {recentSearches.length > 0 && (
         <div className="mt-3 flex items-center justify-center flex-wrap gap-1.5 text-xs">
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 mr-0.5 leading-none">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] mr-0.5 leading-none">
             <Clock className="w-3 h-3 opacity-70 flex-shrink-0" />
             <span className="leading-none">Recent:</span>
           </span>
@@ -199,7 +199,7 @@ export function HomeSearch() {
                 setIsOpen(false);
                 triggerSearch(term);
               }}
-              className="inline-flex items-center justify-center px-2.5 py-1.5 sm:py-1 rounded-md font-mono text-xs leading-none bg-white dark:bg-[#0c0e14] hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+              className="inline-flex items-center justify-center px-2.5 py-1.5 sm:py-1 rounded-md font-mono text-xs leading-none bg-[var(--card-bg)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-border)] border border-[var(--table-border)] text-[var(--text-page)] transition-all cursor-pointer shadow-2xs hover:shadow-xs"
             >
               <span className="leading-none">{term}</span>
             </button>
@@ -207,7 +207,7 @@ export function HomeSearch() {
           <button
             type="button"
             onClick={clearRecentSearches}
-            className="w-6 h-6 inline-flex items-center justify-center rounded text-slate-400 hover:text-rose-500 transition-colors ml-0.5 cursor-pointer"
+            className="w-6 h-6 inline-flex items-center justify-center rounded text-[var(--text-muted)] hover:text-rose-500 transition-colors ml-0.5 cursor-pointer"
             title="Clear search history"
             aria-label="Clear search history"
           >

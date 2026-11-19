@@ -214,9 +214,9 @@ export function FlasherInit() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-18 sm:bottom-6 left-1/2 -translate-x-1/2 z-[120] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 dark:bg-zinc-900/95 text-white text-xs font-medium border border-white/10 shadow-xl pointer-events-none animate-fade-in max-w-[calc(100vw-2rem)]"
+      className="fixed bottom-18 sm:bottom-6 left-1/2 -translate-x-1/2 z-[120] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--card-bg)] text-[var(--text-page)] text-xs font-medium border border-[var(--table-border)] shadow-xl pointer-events-none animate-fade-in max-w-[calc(100vw-2rem)]"
     >
-      <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+      <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] flex-shrink-0" />
       <span className="truncate max-w-[260px] sm:max-w-md">{toastMsg}</span>
     </div>
   );

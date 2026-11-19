@@ -91,8 +91,8 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
 
   return (
     <div ref={containerRef} className="relative z-50 w-full max-w-xl mx-auto text-left">
-      <div className="relative flex items-center w-full rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-150 focus-within:border-[var(--accent-primary)]">
-        <Search className="ml-3.5 w-4 h-4 text-slate-400 pointer-events-none flex-shrink-0" />
+      <div className="search-shell relative flex items-center w-full rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-sm">
+        <Search className="ml-3.5 w-4 h-4 text-[var(--text-muted)] pointer-events-none flex-shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -113,7 +113,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
             if (filterValue.trim()) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          className="flex-1 min-w-0 px-2.5 py-2.5 sm:py-3 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-base sm:text-sm focus:outline-none"
+          className="flex-1 min-w-0 px-2.5 py-2.5 sm:py-3 bg-transparent text-[var(--text-page)] placeholder-[var(--text-muted)] text-base sm:text-sm focus:outline-none"
         />
         {filterValue && (
           <button
@@ -129,7 +129,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
               }
               inputRef.current?.focus();
             }}
-            className="mr-2 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer flex-shrink-0"
+            className="mr-2 w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text-page)] transition-colors cursor-pointer flex-shrink-0"
             aria-label="Clear filter"
           >
             <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />

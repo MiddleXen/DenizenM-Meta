@@ -145,17 +145,16 @@ export default async function HomePage() {
     <div className="w-full">
       {/* Hero Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 pb-6 sm:pb-10 text-center">
-        {/* Main Title: Restored authentic DenizenM Documentation */}
-        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15]">
+        <h1 className="font-display text-3xl sm:text-5xl font-bold tracking-[-0.035em] text-[var(--text-page)] leading-[1.12]">
           DenizenM{' '}
-          <span className="text-emerald-500 dark:text-[#00bc8c]">
+          <span className="text-[var(--accent-primary)]">
             Documentation
           </span>
         </h1>
 
-        <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-4 text-base sm:text-lg text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed">
           Documentation reference covering over{' '}
-          <span className="font-bold text-emerald-600 dark:text-[#00bc8c]">{totalCount.toLocaleString()}</span> commands,
+          <span className="font-semibold text-[var(--accent-primary)]">{totalCount.toLocaleString()}</span> commands,
           tags, events, mechanisms, object types, and addon meta.
         </p>
 
@@ -165,18 +164,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Categories Grid (Without the strange top border line) */}
+      {/* Categories Grid */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 mb-5">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text-page)]">
               Categories
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               Explore script actions, expressions, data types, and engine hooks
             </p>
           </div>
-          <span className="inline-flex items-center text-xs font-mono font-medium px-2.5 py-1 rounded-md bg-white dark:bg-[#0c0e14] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/[0.08] self-start sm:self-auto shadow-2xs">
+          <span className="inline-flex items-center text-xs font-mono font-medium px-2.5 py-1 rounded-md bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--table-border)] self-start sm:self-auto shadow-2xs">
             {categories.length} Sections &bull; {totalCount.toLocaleString()} Entries
           </span>
         </div>
@@ -188,7 +187,7 @@ export default async function HomePage() {
               <Link
                 key={cat.href}
                 href={cat.href}
-                className={`group relative p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] ${cat.hoverBorder} transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline shadow-xs`}
+                className={`group relative p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] ${cat.hoverBorder} shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
@@ -199,23 +198,23 @@ export default async function HomePage() {
                       <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border inline-flex items-center justify-center leading-none ${cat.badgeStyle}`}>
                         {cat.tag}
                       </span>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-slate-50 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 inline-flex items-center justify-center leading-none">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-[var(--code-bg)] text-[var(--text-page)] border border-[var(--table-border)] inline-flex items-center justify-center leading-none">
                         {cat.count.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  <h3 className={`text-base font-bold text-slate-900 dark:text-white ${cat.hoverText} transition-colors flex items-center justify-between`}>
+                  <h3 className={`font-display text-base font-bold text-[var(--text-page)] ${cat.hoverText} transition-colors flex items-center justify-between`}>
                     <span>{cat.name}</span>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:translate-x-1 transition-all" />
                   </h3>
 
-                  <p className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <p className="mt-2 text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
                     {cat.description}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs font-medium text-slate-400 dark:text-slate-500">
+                <div className="mt-4 pt-3 border-t border-[var(--row-border)] flex items-center justify-between text-xs font-medium text-[var(--text-muted)]">
                   <span className={`${cat.hoverText} transition-colors`}>Browse {cat.name}</span>
                   <span className="font-mono text-[11px]">&rarr;</span>
                 </div>
@@ -225,7 +224,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* External Resources Section (Seamless dark cards) */}
+      {/* External Resources Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-10 sm:pb-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4.5">
           {/* Beginner's Guide Card */}
@@ -233,23 +232,23 @@ export default async function HomePage() {
             href="https://guide.denizenscript.com/"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(0,188,140,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
+            className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[var(--accent-border)] shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 dark:text-[#00bc8c] border border-emerald-500/25 flex items-center justify-center shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)] border border-[var(--accent-border)] flex items-center justify-center shadow-2xs">
                   <BookOpen className="w-5 h-5" />
                 </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-[#00bc8c] transition-colors" />
+                <ExternalLink className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 dark:group-hover:text-[#00bc8c] transition-colors">
+              <h3 className="font-display text-base font-bold text-[var(--text-page)] group-hover:text-[var(--accent-primary)] transition-colors">
                 Beginner&apos;s Guide
               </h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
                 Step-by-step tutorial series covering script containers, tag syntax, events, and script structures.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-[#00bc8c]">
+            <div className="mt-4 pt-3 border-t border-[var(--row-border)] flex items-center justify-between text-xs font-semibold text-[var(--accent-primary)]">
               <span>Read Official Guide</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -260,23 +259,23 @@ export default async function HomePage() {
             href="https://discord.gg/F2nftfP3nq"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-[#5865F2]/50 hover:shadow-[0_8px_30px_rgba(88,101,242,0.15)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
+            className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[#5865F2]/50 shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
                 <div className="w-10 h-10 rounded-xl bg-[#5865F2]/10 text-[#5865F2] border border-[#5865F2]/25 flex items-center justify-center shadow-2xs">
                   <DiscordIcon className="w-5 h-5" />
                 </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-[#5865F2] transition-colors" />
+                <ExternalLink className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[#5865F2] transition-colors" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#5865F2] transition-colors">
+              <h3 className="font-display text-base font-bold text-[var(--text-page)] group-hover:text-[#5865F2] transition-colors">
                 Denizen Community Discord
               </h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
                 Chat with scriptwriters, ask questions, debug scripts, and get real-time assistance on Discord.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-[#5865F2]">
+            <div className="mt-4 pt-3 border-t border-[var(--row-border)] flex items-center justify-between text-xs font-semibold text-[#5865F2]">
               <span>Join Discord</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -287,23 +286,23 @@ export default async function HomePage() {
             href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#0c0e14]/90 border border-slate-200/80 dark:border-white/[0.07] hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline shadow-xs"
+            className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[var(--table-border-hover)] shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
-                <div className="w-10 h-10 rounded-xl bg-slate-500/10 text-slate-700 dark:text-slate-200 border border-slate-500/25 flex items-center justify-center shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-[var(--code-bg)] text-[var(--text-page)] border border-[var(--table-border)] flex items-center justify-center shadow-2xs">
                   <GithubIcon className="w-5 h-5" />
                 </div>
-                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white transition-colors" />
+                <ExternalLink className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-page)] transition-colors" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-slate-700 dark:group-hover:text-white transition-colors">
+              <h3 className="font-display text-base font-bold text-[var(--text-page)] transition-colors">
                 Open Source Repositories
               </h3>
-              <p className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
                 Source code for the documentation explorer, compiler, meta scraper, and Denizen addons.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <div className="mt-4 pt-3 border-t border-[var(--row-border)] flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] group-hover:text-[var(--text-page)]">
               <span>View on GitHub</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>

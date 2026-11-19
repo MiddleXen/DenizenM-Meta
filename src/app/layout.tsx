@@ -15,8 +15,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
-    { media: '(prefers-color-scheme: dark)', color: '#080a0f' },
+    { media: '(prefers-color-scheme: light)', color: '#f7f9f8' },
+    { media: '(prefers-color-scheme: dark)', color: '#020303' },
   ],
 };
 
@@ -69,8 +69,14 @@ export default async function RootLayout({
     <html lang="en" className={htmlClass} data-theme={initialTheme} suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="dark light" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+        />
       </head>
-      <body className="min-h-screen flex flex-col antialiased selection:bg-emerald-500/20 selection:text-emerald-400">
+      <body className="min-h-screen flex flex-col antialiased selection:bg-[var(--accent-soft)] selection:text-[var(--accent-primary)]">
         <ThemeProvider initialTheme={initialTheme}>
           <Suspense fallback={null}>
             <NavigationProgressBar />

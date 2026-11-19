@@ -156,15 +156,15 @@ export function Navbar() {
       )}
       <header
         ref={headerRef}
-        className="sticky top-0 z-50 w-full bg-[var(--header-bg)] backdrop-blur-sm border-b border-slate-200/90 dark:border-white/10"
+        className="sticky top-0 z-50 w-full bg-[var(--header-bg)] backdrop-blur-md border-b border-[var(--table-border)]"
       >
         <div className="max-w-[1550px] mx-auto px-3 sm:px-6">
           <div className="flex items-center justify-between h-14 gap-2 sm:gap-4">
             {/* Logo / Brand */}
             <Link href="/" className="flex items-center gap-2 flex-shrink-0 no-underline hover:no-underline group">
-              <span className="font-extrabold text-[15px] sm:text-base tracking-tight text-slate-900 dark:text-white transition-colors flex items-center gap-1.5 select-none">
+              <span className="font-display font-bold text-[15px] sm:text-base tracking-tight text-[var(--text-page)] transition-colors flex items-center gap-1.5 select-none">
                 <span>DenizenM</span>
-                <span className="text-emerald-500 dark:text-[#00bc8c]">
+                <span className="text-[var(--accent-primary)]">
                   Documentation
                 </span>
               </span>
@@ -194,8 +194,8 @@ export function Navbar() {
                 onClick={() => setThemeMenuOpen(!themeMenuOpen)}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 leading-none transition-all cursor-pointer ${
                   themeMenuOpen
-                    ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
+                    ? 'bg-[var(--accent-soft)] text-[var(--text-page)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--accent-soft)]'
                 }`}
               >
                 <span className="leading-none">Theme</span>
@@ -203,8 +203,8 @@ export function Navbar() {
               </button>
 
               {themeMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-white/10 shadow-xl py-1.5 z-50 animate-fade-in">
-                  <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-xl py-1.5 z-50 animate-fade-in">
+                  <div className="px-3 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                     Select Theme
                   </div>
 
@@ -216,15 +216,15 @@ export function Navbar() {
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-left transition-colors cursor-pointer ${
                       theme === 'black'
-                        ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                        ? 'bg-[var(--accent-soft)] text-[var(--text-page)] font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--code-bg)]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="theme-dot theme-dot-black"></span>
                       <span>Pitch Black</span>
                     </div>
-                    {theme === 'black' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                    {theme === 'black' && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
                   </button>
 
                   <button
@@ -235,15 +235,15 @@ export function Navbar() {
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-left transition-colors cursor-pointer ${
                       theme === 'dark'
-                        ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                        ? 'bg-[var(--accent-soft)] text-[var(--text-page)] font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--code-bg)]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="theme-dot theme-dot-emerald"></span>
                       <span>Emerald</span>
                     </div>
-                    {theme === 'dark' && <Check className="w-3.5 h-3.5 text-[#00bc8c]" />}
+                    {theme === 'dark' && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
                   </button>
 
                   <button
@@ -254,18 +254,18 @@ export function Navbar() {
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-left transition-colors cursor-pointer ${
                       theme === 'graphite'
-                        ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                        ? 'bg-[var(--accent-soft)] text-[var(--text-page)] font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--code-bg)]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="theme-dot theme-dot-graphite"></span>
                       <span>Graphite</span>
                     </div>
-                    {theme === 'graphite' && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                    {theme === 'graphite' && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
                   </button>
 
-                  <div className="my-1 border-t border-slate-200 dark:border-white/10" />
+                  <div className="my-1 border-t border-[var(--row-border)]" />
 
                   <button
                     type="button"
@@ -275,15 +275,15 @@ export function Navbar() {
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-left transition-colors cursor-pointer ${
                       theme === 'light'
-                        ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-semibold'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                        ? 'bg-[var(--accent-soft)] text-[var(--text-page)] font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--code-bg)]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="theme-dot theme-dot-light"></span>
                       <span>Light</span>
                     </div>
-                    {theme === 'light' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    {theme === 'light' && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)]" />}
                   </button>
                 </div>
               )}
@@ -293,7 +293,7 @@ export function Navbar() {
           {/* Search bar & External Links */}
           <div className="flex items-center gap-2 md:flex-1 md:max-w-sm justify-end">
             <div className="hidden md:block relative w-full max-w-xs z-[999]" ref={searchContainerRef}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
               <input
                 ref={desktopInputRef}
                 type="text"
@@ -313,7 +313,7 @@ export function Navbar() {
                   if (searchValue.trim()) setIsSearchOpen(true);
                 }}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full pl-8.5 pr-8 py-1.5 rounded-lg text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner"
+                className="w-full pl-8.5 pr-8 py-1.5 rounded-lg text-xs bg-[var(--input-bg)] border border-[var(--table-border)] text-[var(--text-page)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all"
               />
               {searchValue && (
                 <button
@@ -324,7 +324,7 @@ export function Navbar() {
                     desktopInputRef.current?.focus();
                   }}
                   aria-label="Clear global search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-page)] cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -340,13 +340,13 @@ export function Navbar() {
             </div>
 
             {/* Quick external links */}
-            <div className="hidden sm:flex items-center gap-1 border-l border-slate-200 dark:border-white/10 pl-2">
+            <div className="hidden sm:flex items-center gap-1 border-l border-[var(--table-border)] pl-2">
               <a
                 href="https://guide.denizenscript.com/"
                 target="_blank"
                 rel="noreferrer"
                 title="Beginner's Guide"
-                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--accent-soft)] transition-colors"
               >
                 <BookOpen className="w-4 h-4" />
               </a>
@@ -355,7 +355,7 @@ export function Navbar() {
                 target="_blank"
                 rel="noreferrer"
                 title="Denizen Discord"
-                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-[#5865F2] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[#5865F2] hover:bg-[var(--accent-soft)] transition-colors"
               >
                 <DiscordIcon className="w-4 h-4" />
               </a>
@@ -371,7 +371,7 @@ export function Navbar() {
                   setTimeout(() => mobileInputRef.current?.focus(), 40);
                 }}
                 aria-label="Open global search"
-                className="md:hidden relative w-9.5 h-9.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors"
+                className="md:hidden relative w-9.5 h-9.5 rounded-lg border border-[var(--table-border)] text-[var(--text-muted)] hover:text-[var(--text-page)] bg-[var(--card-bg)] flex items-center justify-center cursor-pointer transition-colors"
               >
                 <Search className="w-4 h-4" />
               </button>
@@ -383,7 +383,7 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              className="xl:hidden relative w-9.5 h-9.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-white/5 flex items-center justify-center cursor-pointer transition-colors"
+              className="xl:hidden relative w-9.5 h-9.5 rounded-lg border border-[var(--table-border)] text-[var(--text-muted)] hover:text-[var(--text-page)] bg-[var(--card-bg)] flex items-center justify-center cursor-pointer transition-colors"
             >
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
@@ -392,11 +392,11 @@ export function Navbar() {
 
         {/* Mobile Dropdown Nav */}
         {mobileMenuOpen && (
-          <div className="xl:hidden border-t border-slate-200 dark:border-white/10 py-3.5 flex flex-col gap-3.5 max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain">
+          <div className="xl:hidden border-t border-[var(--table-border)] py-3.5 flex flex-col gap-3.5 max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain">
             {/* Global Search inside Mobile Menu */}
             <div className="md:hidden relative z-[999]" ref={mobileSearchRef}>
-              <div className="relative flex items-center w-full rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus-within:border-[var(--accent-primary)]">
-                <Search className="ml-3 w-4 h-4 text-slate-400 pointer-events-none flex-shrink-0" />
+              <div className="search-shell relative flex items-center w-full rounded-lg bg-[var(--input-bg)] border border-[var(--table-border)]">
+                <Search className="ml-3 w-4 h-4 text-[var(--text-muted)] pointer-events-none flex-shrink-0" />
                 <input
                   ref={mobileInputRef}
                   type="text"
@@ -416,7 +416,7 @@ export function Navbar() {
                     if (searchValue.trim()) setMobileSearchOpen(true);
                   }}
                   onKeyDown={handleMobileSearchKeyDown}
-                  className="flex-1 min-w-0 px-2.5 py-2 bg-transparent text-base sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                  className="flex-1 min-w-0 px-2.5 py-2 bg-transparent text-base sm:text-sm text-[var(--text-page)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
                 {searchValue && (
                   <button
@@ -427,7 +427,7 @@ export function Navbar() {
                       mobileInputRef.current?.focus();
                     }}
                     aria-label="Clear search"
-                    className="mr-1.5 w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-white flex-shrink-0 cursor-pointer"
+                    className="mr-1.5 w-8 h-8 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-page)] flex-shrink-0 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -448,7 +448,7 @@ export function Navbar() {
             </div>
 
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                 Navigation
               </div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -461,8 +461,8 @@ export function Navbar() {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`px-3 py-2.5 rounded-lg text-xs font-semibold text-left border transition-colors ${
                         isActive
-                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10'
+                          ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] border-[var(--accent-border)]'
+                          : 'bg-[var(--code-bg)] text-[var(--text-page)] border-[var(--table-border)]'
                       }`}
                     >
                       {link.label}
@@ -472,8 +472,8 @@ export function Navbar() {
               </div>
             </div>
 
-            <div className="pt-2.5 border-t border-slate-200 dark:border-white/10 flex flex-col gap-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="pt-2.5 border-t border-[var(--row-border)] flex flex-col gap-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 Theme
               </div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -482,8 +482,8 @@ export function Navbar() {
                   onClick={() => setTheme('black')}
                   className={`px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 border cursor-pointer ${
                     theme === 'black'
-                      ? 'bg-white/20 text-white font-bold border-white/40 shadow-xs'
-                      : 'bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] font-bold border-[var(--accent-border)] shadow-xs'
+                      : 'bg-[var(--code-bg)] text-[var(--text-muted)] border-[var(--table-border)]'
                   }`}
                 >
                   <span className="theme-dot-sm theme-dot-black"></span>
@@ -494,8 +494,8 @@ export function Navbar() {
                   onClick={() => setTheme('dark')}
                   className={`px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 border cursor-pointer ${
                     theme === 'dark'
-                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-[#00bc8c] font-bold border-emerald-500/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] font-bold border-[var(--accent-border)] shadow-xs'
+                      : 'bg-[var(--code-bg)] text-[var(--text-muted)] border-[var(--table-border)]'
                   }`}
                 >
                   <span className="theme-dot-sm theme-dot-emerald"></span>
@@ -506,8 +506,8 @@ export function Navbar() {
                   onClick={() => setTheme('graphite')}
                   className={`px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 border cursor-pointer ${
                     theme === 'graphite'
-                      ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400 font-bold border-sky-500/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] font-bold border-[var(--accent-border)] shadow-xs'
+                      : 'bg-[var(--code-bg)] text-[var(--text-muted)] border-[var(--table-border)]'
                   }`}
                 >
                   <span className="theme-dot-sm theme-dot-graphite"></span>
@@ -518,8 +518,8 @@ export function Navbar() {
                   onClick={() => setTheme('light')}
                   className={`px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 border cursor-pointer ${
                     theme === 'light'
-                      ? 'bg-amber-500/15 text-amber-700 font-bold border-amber-500/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)] font-bold border-[var(--accent-border)] shadow-xs'
+                      : 'bg-[var(--code-bg)] text-[var(--text-muted)] border-[var(--table-border)]'
                   }`}
                 >
                   <span className="theme-dot-sm theme-dot-light"></span>
@@ -528,12 +528,12 @@ export function Navbar() {
               </div>
             </div>
 
-            <div className="sm:hidden pt-2.5 border-t border-slate-200 dark:border-white/10 flex items-center gap-2">
+            <div className="sm:hidden pt-2.5 border-t border-[var(--row-border)] flex items-center gap-2">
               <a
                 href="https://guide.denizenscript.com/"
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--code-bg)] text-[var(--text-page)] border border-[var(--table-border)] inline-flex items-center justify-center gap-1.5"
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>Beginner&apos;s Guide</span>
@@ -542,7 +542,7 @@ export function Navbar() {
                 href="https://discord.gg/F2nftfP3nq"
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 inline-flex items-center justify-center gap-1.5"
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--code-bg)] text-[var(--text-page)] border border-[var(--table-border)] inline-flex items-center justify-center gap-1.5"
               >
                 <DiscordIcon className="w-3.5 h-3.5 text-[#5865F2]" />
                 <span>Discord</span>

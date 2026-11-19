@@ -213,7 +213,7 @@ export function SearchAutocomplete({
       <>
         {parts.map((part, i) =>
           highlighter.lowerSet.has(part.toLowerCase()) ? (
-            <span key={i} className="font-bold text-emerald-600 dark:text-emerald-400">
+            <span key={i} className="font-bold text-[var(--accent-primary)]">
               {part}
             </span>
           ) : (
@@ -239,29 +239,29 @@ export function SearchAutocomplete({
 
   return (
     <div
-      className={`search-autocomplete-panel ${positionClass} rounded-xl bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden text-left box-border ${className}`}
+      className={`search-autocomplete-panel ${positionClass} rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-xl overflow-hidden text-left box-border ${className}`}
     >
-      <div className="px-3.5 py-2 text-[11px] font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider flex items-center justify-between border-b border-slate-200/60 dark:border-white/[0.08] bg-slate-50/80 dark:bg-black/25">
+      <div className="px-3.5 py-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex items-center justify-between border-b border-[var(--row-border)] bg-[var(--primary-row-bg)]">
         <div className="flex items-center gap-1.5">
           <span>{categoryFilter ? `${categoryFilter} Suggestions` : 'Suggestions'}</span>
           {matches.length > 0 && (
-            <span className="px-1.5 py-0.5 inline-flex items-center justify-center leading-none rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-[#00bc8c]">
+            <span className="px-1.5 py-0.5 inline-flex items-center justify-center leading-none rounded-full text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-primary)]">
               {matches.length}
             </span>
           )}
         </div>
-        <span className="hidden sm:inline-block text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
+        <span className="hidden sm:inline-block text-[10px] text-[var(--text-muted)] opacity-75 font-mono">
           ↑↓ navigate &bull; ↵ select
         </span>
       </div>
 
       <div
         ref={listRef}
-        className="max-h-[50dvh] sm:max-h-[440px] overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-white/[0.06] py-1"
+        className="max-h-[50dvh] sm:max-h-[440px] overflow-y-auto overscroll-contain divide-y divide-[var(--row-border)] py-1"
         style={{ contentVisibility: 'auto' }}
       >
         {!allSuggestions && !loadFailed ? (
-          <div className="px-4 py-5 text-xs text-center text-slate-500 dark:text-zinc-400">Loading suggestions&hellip;</div>
+          <div className="px-4 py-5 text-xs text-center text-[var(--text-muted)]">Loading suggestions&hellip;</div>
         ) : matches.length > 0 ? (
           matches.map((item, idx) => {
             const isSelected = activeIndex === idx;
@@ -275,8 +275,8 @@ export function SearchAutocomplete({
                 onClick={() => handleItemClick(item)}
                 className={`px-3.5 py-3 sm:py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors duration-100 ${
                   isSelected
-                    ? 'bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-950 dark:text-emerald-300'
-                    : 'text-slate-800 dark:text-zinc-200 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/10 hover:text-emerald-900 dark:hover:text-emerald-300'
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent-primary)]'
+                    : 'text-[var(--text-page)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-primary)]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -286,7 +286,7 @@ export function SearchAutocomplete({
                       {renderHighlighted(item.name)}
                     </div>
                     {item.description && (
-                      <div className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">
+                      <div className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
                         {item.description}
                       </div>
                     )}
@@ -294,17 +294,17 @@ export function SearchAutocomplete({
                 </div>
 
                 <ArrowRight
-                  className={`w-3.5 h-3.5 flex-shrink-0 text-slate-400 transition-transform ${
-                    isSelected ? 'translate-x-1 text-emerald-500 dark:text-emerald-400' : 'opacity-40'
+                  className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${
+                    isSelected ? 'translate-x-1 text-[var(--accent-primary)]' : 'text-[var(--text-muted)] opacity-45'
                   }`}
                 />
               </div>
             );
           })
         ) : (
-          <div className="px-4 py-5 text-xs text-center text-slate-500 dark:text-zinc-400">
+          <div className="px-4 py-5 text-xs text-center text-[var(--text-muted)]">
             No direct matches for &ldquo;<strong>{query}</strong>&rdquo;. Press{' '}
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/10 font-mono text-[10px] border border-slate-200 dark:border-white/10">
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--code-bg)] font-mono text-[10px] border border-[var(--code-border)]">
               Enter
             </kbd>{' '}
             to search full documentation.
@@ -313,7 +313,7 @@ export function SearchAutocomplete({
       </div>
 
       {/* Footer link to full search */}
-      <div className="p-2 border-t border-slate-200/60 dark:border-white/[0.08] bg-slate-50/80 dark:bg-black/35">
+      <div className="p-2 border-t border-[var(--row-border)] bg-[var(--primary-row-bg)]">
         <Link
           href={
             categoryFilter && basePath
@@ -324,17 +324,17 @@ export function SearchAutocomplete({
             onClose();
             if (onSelect) onSelect();
           }}
-          className="w-full px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-white/5 flex items-center justify-between gap-2 transition-colors no-underline hover:no-underline min-w-0"
+          className="w-full px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-soft)] flex items-center justify-between gap-2 transition-colors no-underline hover:no-underline min-w-0"
         >
           <span className="flex items-center gap-1.5 truncate min-w-0 flex-1">
             <span className="flex-shrink-0">
               {categoryFilter ? `Search in ${categoryFilter}s for` : 'Search all for'}
             </span>
-            <span className="font-bold text-slate-900 dark:text-white truncate">
+            <span className="font-bold text-[var(--text-page)] truncate">
               &ldquo;{query}&rdquo;
             </span>
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-zinc-400 flex-shrink-0">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--code-bg)] border border-[var(--code-border)] text-[var(--text-muted)] flex-shrink-0">
             ↵ Enter
           </span>
         </Link>

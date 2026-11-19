@@ -24,26 +24,26 @@ function DiscordIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-slate-200 dark:border-white/10 bg-white/50 dark:bg-black/20 mt-10 sm:mt-16">
+    <footer className="w-full border-t border-[var(--table-border)] bg-[var(--card-bg)]/50 mt-10 sm:mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand & Info */}
           <div className="sm:col-span-2 space-y-2.5">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
+              <span className="font-display font-bold text-base tracking-tight text-[var(--text-page)]">
                 DenizenM Meta
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] max-w-sm leading-relaxed">
               Fast, high-performance meta-documentation explorer for DenizenM script commands, tags, events, mechanisms, and object types.
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+            <p className="text-[11px] text-[var(--text-muted)] opacity-80">
               Documentation compiled from{' '}
               <a
                 href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
                 target="_blank"
                 rel="noreferrer"
-                className="underline hover:text-emerald-600 transition-colors"
+                className="underline hover:text-[var(--accent-primary)] transition-colors"
               >
                 DenizenM-Tjtoxshpilivili1
               </a>{' '}
@@ -52,7 +52,7 @@ export function Footer() {
                 href="https://github.com/Energobro/DenizenM-Core"
                 target="_blank"
                 rel="noreferrer"
-                className="underline hover:text-emerald-600 transition-colors"
+                className="underline hover:text-[var(--accent-primary)] transition-colors"
               >
                 DenizenM-Core
               </a>.
@@ -61,42 +61,42 @@ export function Footer() {
 
           {/* Quick Links */}
           <div className="space-y-2">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+            <h4 className="font-display text-[11px] font-semibold uppercase tracking-wider text-[var(--text-page)]">
               Documentation
             </h4>
-            <ul className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <ul className="space-y-1.5 text-xs text-[var(--text-muted)]">
               <li>
-                <Link href="/Docs/Commands" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/Commands" className="hover:text-[var(--accent-primary)] transition-colors">
                   Commands
                 </Link>
               </li>
               <li>
-                <Link href="/Docs/Tags" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/Tags" className="hover:text-[var(--accent-primary)] transition-colors">
                   Tags
                 </Link>
               </li>
               <li>
-                <Link href="/Docs/Events" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/Events" className="hover:text-[var(--accent-primary)] transition-colors">
                   Events
                 </Link>
               </li>
               <li>
-                <Link href="/Docs/Mechanisms" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/Mechanisms" className="hover:text-[var(--accent-primary)] transition-colors">
                   Mechanisms
                 </Link>
               </li>
               <li>
-                <Link href="/Docs/ObjectTypes" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/ObjectTypes" className="hover:text-[var(--accent-primary)] transition-colors">
                   Object Types
                 </Link>
               </li>
               <li>
-                <Link href="/Docs/Languages" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/Languages" className="hover:text-[var(--accent-primary)] transition-colors">
                   Languages
                 </Link>
               </li>
               <li>
-                <Link href="/Docs/Actions" className="hover:text-emerald-600 transition-colors">
+                <Link href="/Docs/Actions" className="hover:text-[var(--accent-primary)] transition-colors">
                   NPC Actions
                 </Link>
               </li>
@@ -105,10 +105,10 @@ export function Footer() {
 
           {/* Community & Links */}
           <div className="space-y-2">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+            <h4 className="font-display text-[11px] font-semibold uppercase tracking-wider text-[var(--text-page)]">
               Community &amp; Source
             </h4>
-            <ul className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <ul className="space-y-1.5 text-xs text-[var(--text-muted)]">
               <li>
                 <a
                   href="https://discord.gg/F2nftfP3nq"
@@ -125,7 +125,7 @@ export function Footer() {
                   href="https://guide.denizenscript.com/"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 leading-none"
+                  className="hover:text-[var(--accent-primary)] transition-colors inline-flex items-center gap-1.5 leading-none"
                 >
                   <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="leading-none">Official Beginner&apos;s Guide</span>
@@ -136,7 +136,7 @@ export function Footer() {
                   href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-slate-900 dark:hover:text-white transition-colors inline-flex items-center gap-1.5 leading-none"
+                  className="hover:text-[var(--text-page)] transition-colors inline-flex items-center gap-1.5 leading-none"
                 >
                   <GithubIcon className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="leading-none">GitHub Repository</span>
@@ -146,7 +146,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-4 border-t border-slate-200/80 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 gap-2">
+        <div className="mt-8 pt-4 border-t border-[var(--row-border)] flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--text-muted)] opacity-80 gap-2">
           <span>&copy; DenizenM Meta Project</span>
           <span>Engineered for Denizen Scriptwriters</span>
         </div>
