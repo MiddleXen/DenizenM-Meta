@@ -7,6 +7,8 @@ import { SearchProvider } from '@/components/SearchContext';
 import { BackToTop } from '@/components/BackToTop';
 import { NavigationProgressBar } from '@/components/NavigationProgressBar';
 import { FlasherInit } from '@/components/FlasherInit';
+import { WhatsNewProvider } from '@/components/WhatsNew';
+import { getMetaStatus } from '@/lib/meta-status';
 import { Suspense } from 'react';
 import './globals.css';
 
@@ -54,7 +56,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
+  const [cookieStore, metaStatus] = await Promise.all([cookies(), getMetaStatus()]);
   const themeCookie = cookieStore.get('cookie_theme')?.value;
   const initialTheme: Theme =
     themeCookie === 'dark' ? 'dark' :
@@ -82,12 +84,14 @@ export default async function RootLayout({
             <NavigationProgressBar />
           </Suspense>
           <SearchProvider>
-            <Navbar />
-            <main className="flex-1 w-full flex flex-col relative z-10">
-              {children}
-            </main>
-            <Footer />
-            <BackToTop />
+            <WhatsNewProvider status={metaStatus}>
+              <Navbar />
+              <main className="flex-1 w-full flex flex-col relative z-10">
+                {children}
+              </main>
+              <Footer />
+              <BackToTop />
+            </WhatsNewProvider>
           </SearchProvider>
           <FlasherInit />
         </ThemeProvider>

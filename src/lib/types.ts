@@ -150,6 +150,8 @@ export interface MetaDocsData {
   lastReload: string;
   /** Async-safety markings parsed from the Java sources at sync time. */
   asyncSafety?: AsyncSafetyData;
+  /** Source zip url -> commit SHA the docs were built from. */
+  sourceCommits?: Record<string, string>;
 }
 
 export interface PluginFilterOption {

@@ -30,7 +30,7 @@ import { buildSuggestionsFromDocs, serializeSuggestions } from './suggestions';
 import { escapeForHTML, escapeHtmlAttr } from './util';
 import { estimateCardFeatures, featuresStyle, type HeightFeatures } from './card-height';
 
-const SEARCH_QUALITY_NAMES = [
+export const SEARCH_QUALITY_NAMES = [
   'Not Matched', // 0
   'Just Barely Matched', // 1
   'Backup Match', // 2
@@ -478,19 +478,15 @@ export function handleMetaPage<T extends AnyMetaObject>(
   };
 }
 
-export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | null | undefined): DocViewModel {
-  const q = (query || '').trim();
-  if (!q || q.toLowerCase() === 'nothing') {
-    return {
-      isAll: false,
-      currentlyShown: 0,
-      max: allObjects.length,
-      contentHtml: '<div class="doc-list"></div>',
-      searchText: q && q.toLowerCase() !== 'nothing' ? q : '',
-      categories: [],
-    };
-  }
+export interface GlobalSearchMatch {
+  quality: number;
+  obj: AnyMetaObject;
+}
 
+/** Ranked matches across every entry type (shared by the Search page and /api/search). */
+export function searchAllObjects(allObjects: AnyMetaObject[], query: string): GlobalSearchMatch[] {
+  const q = query.trim();
+  if (!q) return [];
   const searchLow = q.toLowerCase();
   const nq = normalizeScriptQuery(q);
   const primarySearch =
@@ -506,7 +502,7 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
   const inheritedSet = inheritedTargets.length > 0 ? new Set(inheritedTargets) : null;
   const checkEventPattern = primarySearch.includes(' ');
 
-  const matches: Array<{ quality: number; obj: AnyMetaObject }> = [];
+  const matches: GlobalSearchMatch[] = [];
 
   for (const obj of allObjects) {
     let quality = getMatchQuality(obj.searchHelper, primarySearch);
@@ -548,6 +544,24 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
     }
     return a.obj.cleanName.localeCompare(b.obj.cleanName);
   });
+
+  return matches;
+}
+
+export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | null | undefined): DocViewModel {
+  const q = (query || '').trim();
+  if (!q || q.toLowerCase() === 'nothing') {
+    return {
+      isAll: false,
+      currentlyShown: 0,
+      max: allObjects.length,
+      contentHtml: '<div class="doc-list"></div>',
+      searchText: q && q.toLowerCase() !== 'nothing' ? q : '',
+      categories: [],
+    };
+  }
+
+  const matches = searchAllObjects(allObjects, q);
 
   let outText = '<div class="doc-list">';
   if (matches.length > 0) {

@@ -639,6 +639,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
   const rawBlocks: Array<{ type: string; url: string; pairs: Array<[string, string]> }> = [];
   const loadErrors: string[] = [];
   const asyncCollector = new AsyncSafetyCollector();
+  const sourceCommits: Record<string, string> = {};
 
   for (const src of sources) {
     try {
@@ -646,6 +647,9 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
       const fileName = `${path.basename(src).replace('.zip', '')}-${hash}.zip`;
       const cachePath = path.join(cacheDir, fileName);
       const zipBuf = await downloadFile(src, cachePath, forceDownload);
+      // GitHub stores the archived commit's SHA as the zip comment.
+      const commit = new AdmZip(zipBuf).getZipComment().trim();
+      if (/^[0-9a-f]{40}$/.test(commit)) sourceCommits[src] = commit;
       const repo = repoFromSourceUrl(src);
       const parsed = parseRawMetaBlocks(zipBuf, src, (content) => asyncCollector.visitJavaFile(content, repo));
       rawBlocks.push(...parsed);
@@ -1302,6 +1306,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
     loadErrors,
     lastReload: new Date().toISOString(),
     asyncSafety: asyncSafety || undefined,
+    sourceCommits,
   };
 }
 
@@ -1347,6 +1352,7 @@ export function serializeMetaDocs(docs: MetaDocsData): string {
     loadErrors: docs.loadErrors,
     lastReload: docs.lastReload,
     asyncSafety: docs.asyncSafety,
+    sourceCommits: docs.sourceCommits,
   });
 }
 
@@ -1426,5 +1432,6 @@ export function hydrateMetaDocs(raw: Partial<MetaDocsData>): MetaDocsData {
     loadErrors: raw.loadErrors || [],
     lastReload: raw.lastReload || '0',
     asyncSafety: raw.asyncSafety,
+    sourceCommits: raw.sourceCommits,
   };
 }

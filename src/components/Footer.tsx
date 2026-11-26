@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Braces } from 'lucide-react';
+import { MetaUpdatedNote } from './WhatsNew';
 
 function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -142,12 +143,25 @@ export function Footer() {
                   <span className="leading-none">GitHub Repository</span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="/api/search"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Public JSON search API, eg /api/search?q=narrate"
+                  className="hover:text-[var(--accent-primary)] transition-colors inline-flex items-center gap-1.5 leading-none"
+                >
+                  <Braces className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="leading-none">JSON Search API</span>
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="mt-8 pt-4 border-t border-[var(--row-border)] flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--text-muted)] opacity-80 gap-2">
           <span>&copy; DenizenM Meta Project</span>
+          <MetaUpdatedNote />
           <span>Engineered for Denizen Scriptwriters</span>
         </div>
       </div>

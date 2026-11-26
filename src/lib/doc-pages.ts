@@ -265,7 +265,7 @@ export const loadDocPage = cache(async (kind: DocKind, id: string | null) => {
   return { model, restUrl };
 });
 
-function cleanPlainSummary(raw: string | undefined, maxLen = 220): string {
+export function cleanPlainSummary(raw: string | undefined, maxLen = 220): string {
   if (!raw) return '';
   const cleaned = raw
     .replace(/\r/g, '')

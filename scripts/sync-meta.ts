@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { loadAllMetaDocs, serializeMetaDocs, DEFAULT_SOURCES } from '../src/lib/meta-loader';
 import { buildSuggestionsFromDocs, serializeSuggestions } from '../src/lib/suggestions';
+import { buildChangelog, buildMetaIndex, loadPreviousState } from '../src/lib/changelog';
 
 async function main() {
   console.log('Fetching and building Denizen Meta docs...');
@@ -20,6 +21,20 @@ async function main() {
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
+
+  // "What's new": diff against the previous sync (live site or local files) before anything is overwritten.
+  const prev = await loadPreviousState(outDir);
+  const index = buildMetaIndex(docs);
+  const { changelog, update } = await buildChangelog(docs, index, prev);
+  fs.writeFileSync(path.join(outDir, 'meta-index.json'), JSON.stringify(index));
+  fs.writeFileSync(path.join(outDir, 'changelog.json'), JSON.stringify(changelog));
+  console.log(
+    !prev.index
+      ? 'Changelog: no previous index found, saved a baseline.'
+      : update
+      ? `Changelog (vs ${prev.from}): +${update.counts.added} / -${update.counts.removed} / ~${update.counts.changed} entries, ${update.sources.length} source(s) changed.`
+      : `Changelog (vs ${prev.from}): no changes.`
+  );
 
   // Build suggestions BEFORE stripping build-only fields
   const suggestions = buildSuggestionsFromDocs(docs);

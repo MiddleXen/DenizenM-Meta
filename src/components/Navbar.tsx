@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import { useSearchContext } from './SearchContext';
+import { WhatsNewButton, WhatsNewMenuItem } from './WhatsNew';
 import { Search, ChevronDown, Check, Menu, X, BookOpen } from 'lucide-react';
 import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
 
@@ -341,6 +342,7 @@ export function Navbar() {
 
             {/* Quick external links */}
             <div className="hidden sm:flex items-center gap-1 border-l border-[var(--table-border)] pl-2">
+              <WhatsNewButton />
               <a
                 href="https://guide.denizenscript.com/"
                 target="_blank"
@@ -471,6 +473,8 @@ export function Navbar() {
                 })}
               </div>
             </div>
+
+            <WhatsNewMenuItem onSelect={() => setMobileMenuOpen(false)} />
 
             <div className="pt-2.5 border-t border-[var(--row-border)] flex flex-col gap-2">
               <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
