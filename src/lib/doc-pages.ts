@@ -10,6 +10,7 @@ import { matchEventPattern } from './meta-data';
 import { expandInheritedQueries, normalizeScriptQuery } from './object-inheritance';
 import { cleanTag } from './util';
 import { FEATURES_STYLE_RE_SRC } from './card-height';
+import { hrefForSuggestion } from './suggestions';
 import {
   DocViewModel,
   MetaDocsData,
@@ -277,10 +278,16 @@ export function cleanPlainSummary(raw: string | undefined, maxLen = 220): string
   return cleaned.slice(0, maxLen - 1).trimEnd() + '…';
 }
 
-function makeRichMeta(title: string, description: string): Metadata {
+/**
+ * `canonicalPath` tells search engines which URL is the real one (the same page is reachable as /docs/..., with
+ * different casing or encodings, and on preview domains). Pages that are only search results get `noindex`.
+ */
+function makeRichMeta(title: string, description: string, canonicalPath: string | null, indexable = true): Metadata {
   return {
     title,
     description,
+    ...(canonicalPath ? { alternates: { canonical: canonicalPath } } : {}),
+    ...(indexable ? {} : { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description,
@@ -320,7 +327,7 @@ export async function buildDocPageMetadata(
       kind === 'Search'
         ? `Search across all ${count.toLocaleString()} DenizenM commands, tags, events, mechanisms, actions, languages, and object types.`
         : `Browse all ${count.toLocaleString()} DenizenM ${sectionLabel.toLowerCase()} with syntax, async safety details, and script examples.`;
-    return makeRichMeta(title, desc);
+    return makeRichMeta(title, desc, `/Docs/${kind}`, kind !== 'Search');
   }
 
   if (kind === 'Commands') {
@@ -337,7 +344,7 @@ export async function buildDocPageMetadata(
       const desc = cleanPlainSummary(
         `${cmd.short || cmd.description}${cmd.syntax ? ` — Syntax: ${cmd.syntax}` : ''}`
       );
-      return makeRichMeta(title, desc || `DenizenM command '${cmd.name}' documentation.`);
+      return makeRichMeta(title, desc || `DenizenM command '${cmd.name}' documentation.`, hrefForSuggestion('Command', cmd.cleanName));
     }
   } else if (kind === 'Tags') {
     const tagKey = cleanTag(clean).trim();
@@ -354,7 +361,7 @@ export async function buildDocPageMetadata(
       const ret = tag.returns ? ` → ${tag.returns}` : '';
       const title = `${tag.tagFull}${ret} (${asyncLabel}) | DenizenM Meta`;
       const desc = cleanPlainSummary(tag.description);
-      return makeRichMeta(title, desc || `DenizenM tag ${tag.tagFull} documentation.`);
+      return makeRichMeta(title, desc || `DenizenM tag ${tag.tagFull} documentation.`, hrefForSuggestion('Tag', tag.cleanName));
     }
   } else if (kind === 'Mechanisms') {
     const mech =
@@ -364,7 +371,7 @@ export async function buildDocPageMetadata(
       const inputPart = mech.input ? ` (${mech.input})` : '';
       const title = `${mech.fullName}${inputPart} • Mechanism | DenizenM Meta`;
       const desc = cleanPlainSummary(mech.description);
-      return makeRichMeta(title, desc || `DenizenM mechanism ${mech.fullName} documentation.`);
+      return makeRichMeta(title, desc || `DenizenM mechanism ${mech.fullName} documentation.`, hrefForSuggestion('Mechanism', mech.cleanName));
     }
   } else if (kind === 'Events') {
     const evtKey = normalizeScriptQuery(clean).strippedEvent;
@@ -376,7 +383,7 @@ export async function buildDocPageMetadata(
       const desc = cleanPlainSummary(
         `${evt.triggers}${evt.cancellable ? ' (Cancellable)' : ''}`
       );
-      return makeRichMeta(title, desc || `DenizenM event '${evt.cleanName}' documentation.`);
+      return makeRichMeta(title, desc || `DenizenM event '${evt.cleanName}' documentation.`, hrefForSuggestion('Event', evt.cleanName));
     }
   } else if (kind === 'ObjectTypes') {
     const ot = docs.objectTypes[clean] || docs.objectTypes[clean + 'tag'];
@@ -390,14 +397,14 @@ export async function buildDocPageMetadata(
       const prefixLabel = ot.prefix && ot.prefix !== 'none' ? ` (${ot.prefix}@)` : '';
       const title = `${ot.name}${prefixLabel} • ObjectType (${asyncLabel}) | DenizenM Meta`;
       const desc = cleanPlainSummary(ot.description);
-      return makeRichMeta(title, desc || `DenizenM object type ${ot.name} documentation.`);
+      return makeRichMeta(title, desc || `DenizenM object type ${ot.name} documentation.`, hrefForSuggestion('ObjectType', ot.cleanName));
     }
   } else if (kind === 'Languages') {
     const lang = docs.languages[clean];
     if (lang) {
       const title = `${lang.name} • Language Guide | DenizenM Meta`;
       const desc = cleanPlainSummary(lang.description);
-      return makeRichMeta(title, desc || `DenizenM language explanation: ${lang.name}.`);
+      return makeRichMeta(title, desc || `DenizenM language explanation: ${lang.name}.`, hrefForSuggestion('Language', lang.cleanName));
     }
   } else if (kind === 'Actions') {
     const actKey = normalizeScriptQuery(clean).strippedEvent;
@@ -405,11 +412,12 @@ export async function buildDocPageMetadata(
     if (act) {
       const title = `${act.name} • NPC Action | DenizenM Meta`;
       const desc = cleanPlainSummary(act.triggers);
-      return makeRichMeta(title, desc || `DenizenM NPC action '${act.name}' documentation.`);
+      return makeRichMeta(title, desc || `DenizenM NPC action '${act.name}' documentation.`, hrefForSuggestion('Action', act.cleanName));
     }
   }
 
   const fallbackTitle = `Search '${id}' | ${sectionLabel} | DenizenM Meta Documentation`;
   const fallbackDesc = `${sectionLabel} matching '${id}' in DenizenM Meta Documentation.`;
-  return makeRichMeta(fallbackTitle, fallbackDesc);
+  // Not an exact entry: a search-results page. Keep it out of the index; the entries themselves are in the sitemap.
+  return makeRichMeta(fallbackTitle, fallbackDesc, null, false);
 }

@@ -5,6 +5,10 @@ export const dynamic = 'force-static';
 
 export default function robots(): MetadataRoute.Robots {
   const base = siteUrl();
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+    // Preview deployment: keep it out of search engines entirely.
+    return { rules: [{ userAgent: '*', disallow: '/' }] };
+  }
   return {
     rules: [
       {

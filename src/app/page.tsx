@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Home | DenizenM Meta Documentation',
   description: 'Fast, complete meta-documentation reference for Denizen commands, tags, events, mechanisms, and object types.',
+  alternates: { canonical: '/' },
 };
 
 function DiscordIcon({ className = 'w-5 h-5' }: { className?: string }) {

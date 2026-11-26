@@ -9,6 +9,7 @@ import { NavigationProgressBar } from '@/components/NavigationProgressBar';
 import { FlasherInit } from '@/components/FlasherInit';
 import { WhatsNewProvider } from '@/components/WhatsNew';
 import { getMetaStatus } from '@/lib/meta-status';
+import { siteUrl } from '@/lib/site-url';
 import { Suspense } from 'react';
 import './globals.css';
 
@@ -22,7 +23,14 @@ export const viewport: Viewport = {
   ],
 };
 
+// Preview deployments (and local builds on Vercel previews) must not compete with the real site in search results.
+const isPreviewDeployment = !!process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
+  ...(isPreviewDeployment ? { robots: { index: false, follow: false } } : {}),
+  // Google Search Console "HTML tag" verification: put the content="..." value into GOOGLE_SITE_VERIFICATION.
+  ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
   title: 'DenizenM Meta Documentation',
   description: 'Fast, high-performance meta-documentation explorer for DenizenM script commands, tags, events, mechanisms, and object types.',
   keywords: ['DenizenM', 'Denizen', 'DenizenScript', 'Minecraft', 'Scripting', 'Tags', 'Commands', 'Mechanisms', 'Events'],
