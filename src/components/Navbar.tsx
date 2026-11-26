@@ -37,6 +37,8 @@ export function Navbar() {
   const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileActiveIndex, setMobileActiveIndex] = useState(-1);
+  // 1024-1279px: the full nav fits only with the search collapsed into an icon that expands on demand.
+  const [compactSearchOpen, setCompactSearchOpen] = useState(false);
 
   const headerRef = useRef<HTMLElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
@@ -50,6 +52,7 @@ export function Navbar() {
     setMobileMenuOpen(false);
     setMobileSearchOpen(false);
     setIsSearchOpen(false);
+    setCompactSearchOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -59,6 +62,7 @@ export function Navbar() {
       }
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setIsSearchOpen(false);
+        if (!(e.target as Element)?.closest?.('[data-compact-search-toggle]')) setCompactSearchOpen(false);
       }
       if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
         setMobileSearchOpen(false);
@@ -91,7 +95,9 @@ export function Navbar() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         preloadSuggestions();
-        if (window.innerWidth >= 768 && desktopInputRef.current) {
+        if (window.innerWidth >= 1024 && window.innerWidth < 1280) {
+          openCompactSearch();
+        } else if (window.innerWidth >= 768 && desktopInputRef.current) {
           desktopInputRef.current.focus();
           desktopInputRef.current.select();
         } else {
@@ -104,6 +110,15 @@ export function Navbar() {
     return () => window.removeEventListener('keydown', handleGlobalCtrlK);
   }, [pathname]);
 
+  function openCompactSearch() {
+    preloadSuggestions();
+    setCompactSearchOpen(true);
+    setTimeout(() => {
+      desktopInputRef.current?.focus();
+      desktopInputRef.current?.select();
+    }, 20);
+  }
+
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -115,9 +130,11 @@ export function Navbar() {
     } else if (e.key === 'Escape') {
       setIsSearchOpen(false);
       setSearchActiveIndex(-1);
+      setCompactSearchOpen(false);
       desktopInputRef.current?.blur();
     } else if (e.key === 'Enter') {
       setIsSearchOpen(false);
+      setCompactSearchOpen(false);
       const trimmed = searchValue.trim();
       if (!trimmed) return;
       triggerSearch();
@@ -150,7 +167,7 @@ export function Navbar() {
     <>
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 top-14 bg-black/45 backdrop-blur-[1px] z-40 xl:hidden"
+          className="fixed inset-0 top-14 bg-black/45 backdrop-blur-[1px] z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
           aria-hidden="true"
         />
@@ -159,27 +176,28 @@ export function Navbar() {
         ref={headerRef}
         className="sticky top-0 z-50 w-full bg-[var(--header-bg)] backdrop-blur-md border-b border-[var(--table-border)]"
       >
-        <div className="max-w-[1550px] mx-auto px-3 sm:px-6">
-          <div className="flex items-center justify-between h-14 gap-2 sm:gap-4">
+        <div className="relative max-w-[1550px] mx-auto px-3 sm:px-6 lg:max-xl:px-4">
+          <div className="flex items-center justify-between h-14 gap-2 sm:gap-4 lg:max-xl:gap-3">
             {/* Logo / Brand */}
             <Link href="/" className="flex items-center gap-2 flex-shrink-0 no-underline hover:no-underline group">
               <span className="font-display font-bold text-[15px] sm:text-base tracking-tight text-[var(--text-page)] transition-colors flex items-center gap-1.5 select-none">
                 <span>DenizenM</span>
-                <span className="text-[var(--accent-primary)]">
+                <span className="text-[var(--accent-primary)] lg:max-xl:hidden">
                   Documentation
                 </span>
+                <span className="text-[var(--accent-primary)] hidden lg:max-xl:inline">Docs</span>
               </span>
             </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden xl:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1 lg:max-xl:gap-0.5">
             {NAV_LINKS.map((link) => {
               const isActive = lowerPath.startsWith(link.href.toLowerCase());
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`nav-tab-link px-3 py-1.5 rounded-lg text-xs font-semibold no-underline hover:no-underline transition-all duration-150 select-none ${
+                  className={`nav-tab-link px-3 lg:max-xl:px-2 py-1.5 rounded-lg text-xs font-semibold no-underline hover:no-underline transition-all duration-150 select-none ${
                     isActive ? 'nav-tab-active' : 'nav-tab-idle'
                   }`}
                 >
@@ -292,8 +310,15 @@ export function Navbar() {
           </nav>
 
           {/* Search bar & External Links */}
-          <div className="flex items-center gap-2 md:flex-1 md:max-w-sm justify-end">
-            <div className="hidden md:block relative w-full max-w-xs z-[999]" ref={searchContainerRef}>
+          <div className="flex items-center gap-2 md:flex-1 md:max-w-sm lg:max-xl:flex-none justify-end">
+            <div
+              className={`hidden md:block relative w-full max-w-xs z-[999] ${
+                compactSearchOpen
+                  ? 'lg:max-xl:absolute lg:max-xl:right-4 lg:max-xl:top-1/2 lg:max-xl:-translate-y-1/2 lg:max-xl:w-[26rem] lg:max-xl:max-w-[calc(100%-2rem)]'
+                  : 'lg:max-xl:hidden'
+              }`}
+              ref={searchContainerRef}
+            >
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
               <input
                 ref={desktopInputRef}
@@ -340,6 +365,18 @@ export function Navbar() {
               />
             </div>
 
+            {/* Compact search toggle (1024-1279px) */}
+            <button
+              type="button"
+              data-compact-search-toggle
+              onClick={() => (compactSearchOpen ? setCompactSearchOpen(false) : openCompactSearch())}
+              aria-label="Search all meta"
+              title="Search (Ctrl+K)"
+              className="hidden lg:max-xl:inline-flex p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-page)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
             {/* Quick external links */}
             <div className="hidden sm:flex items-center gap-1 border-l border-[var(--table-border)] pl-2">
               <WhatsNewButton />
@@ -385,7 +422,7 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              className="xl:hidden relative w-9.5 h-9.5 rounded-lg border border-[var(--table-border)] text-[var(--text-muted)] hover:text-[var(--text-page)] bg-[var(--card-bg)] flex items-center justify-center cursor-pointer transition-colors"
+              className="lg:hidden relative w-9.5 h-9.5 rounded-lg border border-[var(--table-border)] text-[var(--text-muted)] hover:text-[var(--text-page)] bg-[var(--card-bg)] flex items-center justify-center cursor-pointer transition-colors"
             >
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
@@ -394,7 +431,7 @@ export function Navbar() {
 
         {/* Mobile Dropdown Nav */}
         {mobileMenuOpen && (
-          <div className="xl:hidden border-t border-[var(--table-border)] py-3.5 flex flex-col gap-3.5 max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain">
+          <div className="lg:hidden border-t border-[var(--table-border)] py-3.5 flex flex-col gap-3.5 max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain">
             {/* Global Search inside Mobile Menu */}
             <div className="md:hidden relative z-[999]" ref={mobileSearchRef}>
               <div className="search-shell relative flex items-center w-full rounded-lg bg-[var(--input-bg)] border border-[var(--table-border)]">

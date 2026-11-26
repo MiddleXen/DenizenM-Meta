@@ -198,7 +198,7 @@ export function SearchAutocomplete({
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold leading-none bg-slate-500/15 text-slate-600 dark:text-slate-400 border border-slate-500/30">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold leading-none bg-[var(--accent-soft)] text-[var(--text-muted)] border border-[var(--table-border)]">
             <FileCode className="w-2.5 h-2.5" />
             <span>{type}</span>
           </span>
@@ -239,18 +239,19 @@ export function SearchAutocomplete({
 
   return (
     <div
-      className={`search-autocomplete-panel ${positionClass} rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-xl overflow-hidden text-left box-border ${className}`}
+      className={`search-autocomplete-panel @container ${positionClass} rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-xl overflow-hidden text-left box-border ${className}`}
     >
       <div className="px-3.5 py-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider flex items-center justify-between border-b border-[var(--row-border)] bg-[var(--primary-row-bg)]">
-        <div className="flex items-center gap-1.5">
-          <span>{categoryFilter ? `${categoryFilter} Suggestions` : 'Suggestions'}</span>
+        <div className="flex items-center gap-1.5 min-w-0 whitespace-nowrap">
+          <span className="truncate">{categoryFilter ? `${categoryFilter} Suggestions` : 'Suggestions'}</span>
           {matches.length > 0 && (
-            <span className="px-1.5 py-0.5 inline-flex items-center justify-center leading-none rounded-full text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-primary)]">
+            <span className="flex-shrink-0 px-1.5 py-0.5 inline-flex items-center justify-center leading-none rounded-full text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent-primary)]">
               {matches.length}
             </span>
           )}
         </div>
-        <span className="hidden sm:inline-block text-[10px] text-[var(--text-muted)] opacity-75 font-mono">
+        {/* Only when the panel itself is wide enough (container query), so it can never collide with the count. */}
+        <span className="hidden @[24rem]:inline-block flex-shrink-0 ml-3 whitespace-nowrap normal-case tracking-normal text-[10px] text-[var(--text-muted)] opacity-75 font-mono">
           ↑↓ navigate &bull; ↵ select
         </span>
       </div>

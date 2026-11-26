@@ -55,14 +55,36 @@ export function timeAgo(iso?: string): string {
   return 'just now';
 }
 
-/** Relative time that renders the absolute date on the server (no hydration mismatch) and refines after mount. */
+// After hydration, components that mount later (the modal) can render the relative time right away.
+let hydrated = false;
+
+// One shared minute ticker for every <RelativeTime>, instead of an interval each.
+const tickListeners = new Set<() => void>();
+let tickTimer: ReturnType<typeof setInterval> | null = null;
+function subscribeTick(fn: () => void): () => void {
+  tickListeners.add(fn);
+  if (!tickTimer) tickTimer = setInterval(() => tickListeners.forEach((l) => l()), 60_000);
+  return () => {
+    tickListeners.delete(fn);
+    if (tickListeners.size === 0 && tickTimer) {
+      clearInterval(tickTimer);
+      tickTimer = null;
+    }
+  };
+}
+
+/**
+ * Relative time. During hydration it first renders the absolute date (identical on server and client), then switches;
+ * anything mounted later (eg the modal) renders the final text immediately, so nothing jumps after opening.
+ */
 function RelativeTime({ iso, className }: { iso?: string; className?: string }) {
-  const [label, setLabel] = useState(() => absoluteDate(iso));
+  const [label, setLabel] = useState(() => (hydrated ? timeAgo(iso) : absoluteDate(iso)));
   useEffect(() => {
+    hydrated = true;
     if (!iso) return;
-    setLabel(timeAgo(iso));
-    const t = setInterval(() => setLabel(timeAgo(iso)), 60_000);
-    return () => clearInterval(t);
+    const update = () => setLabel(timeAgo(iso));
+    update();
+    return subscribeTick(update);
   }, [iso]);
   if (!iso) return null;
   return (
@@ -209,12 +231,19 @@ function WhatsNewModal({ onClose }: { onClose: () => void }) {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    const prevOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
-    panelRef.current?.focus();
+    // Stop the page behind from scrolling without touching <html> styles: restyling the root of a page with
+    // thousands of cards (Tags) is what made opening and closing feel sluggish.
+    const blockScroll = (e: WheelEvent | TouchEvent) => {
+      const panel = panelRef.current;
+      if (!panel || !panel.contains(e.target as Node)) e.preventDefault();
+    };
+    window.addEventListener('wheel', blockScroll, { passive: false });
+    window.addEventListener('touchmove', blockScroll, { passive: false });
+    panelRef.current?.focus({ preventScroll: true });
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.documentElement.style.overflow = prevOverflow;
+      window.removeEventListener('wheel', blockScroll);
+      window.removeEventListener('touchmove', blockScroll);
     };
   }, [onClose]);
 
@@ -222,7 +251,7 @@ function WhatsNewModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-start sm:items-center justify-center bg-black/55 backdrop-blur-[2px] p-2 sm:p-6"
+      className="fixed inset-0 z-[1000] flex items-start sm:items-center justify-center bg-black/65 p-2 sm:p-6 animate-fade-in"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

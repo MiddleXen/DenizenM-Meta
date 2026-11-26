@@ -582,7 +582,7 @@ export function handleGlobalSearch(allObjects: AnyMetaObject[], query: string | 
       outText += wrapDocCard(match.obj);
     }
   } else {
-    outText += `<div class="my-8 px-6 py-8 rounded-xl bg-slate-100 dark:bg-[#161922] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-medium text-center max-w-md mx-auto">
+    outText += `<div class="my-8 px-6 py-8 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] text-[var(--text-muted)] shadow-sm text-sm font-medium text-center max-w-md mx-auto">
       No documentation entries found matching &ldquo;<strong>${escapeForHTML(q)}</strong>&rdquo;.
     </div>`;
   }

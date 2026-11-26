@@ -187,7 +187,7 @@ export function HomeSearch() {
       {recentSearches.length > 0 && (
         <div className="mt-3 flex items-center justify-center flex-wrap gap-1.5 text-xs">
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] mr-0.5 leading-none">
-            <Clock className="w-3 h-3 opacity-70 flex-shrink-0" />
+            <Clock className="w-3 h-3 opacity-70 flex-shrink-0 translate-y-px" />
             <span className="leading-none">Recent:</span>
           </span>
           {recentSearches.map((term) => (
