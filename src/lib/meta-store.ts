@@ -28,6 +28,7 @@ import { matchEventPattern } from './meta-data';
 import { expandInheritedQueries, normalizeScriptQuery } from './object-inheritance';
 import { buildSuggestionsFromDocs, serializeSuggestions } from './suggestions';
 import { escapeForHTML, escapeHtmlAttr } from './util';
+import { estimateCardFeatures, featuresStyle, type HeightFeatures } from './card-height';
 
 const SEARCH_QUALITY_NAMES = [
   'Not Matched', // 0
@@ -202,7 +203,7 @@ export function getAsyncTokens(obj: AnyMetaObject): string | null {
   }
   if (obj.type === 'Tag') {
     const tag = obj as MetaTagObject;
-    const info = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
+    const info = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
     return info.isSafe ? 'safe' : 'main';
   }
   if (obj.type === 'ObjectType') {
@@ -255,18 +256,24 @@ function enhanceDocCardHtml(rawHtml: string): string {
   return out;
 }
 
+const cardFeaturesCache = new WeakMap<AnyMetaObject, HeightFeatures>();
+
 export function wrapDocCard(obj: AnyMetaObject): string {
   const plugin = getPluginBucket(obj.plugin);
   const asyncTokens = getAsyncTokens(obj);
-  const attrs = asyncTokens
-    ? ` data-async="${asyncTokens}" data-plugin="${plugin.slug}"`
-    : ` data-plugin="${plugin.slug}"`;
   let enhanced = enhancedCardCache.get(obj);
   if (enhanced === undefined) {
     enhanced = enhanceDocCardHtml(obj.htmlContent);
     enhancedCardCache.set(obj, enhanced);
   }
-  return `<div class="doc-card"${attrs}>${enhanced}</div>`;
+  // Height features drive the card's placeholder size before it is rendered (see card-height.ts).
+  let features = cardFeaturesCache.get(obj);
+  if (features === undefined) {
+    features = estimateCardFeatures(enhanced);
+    cardFeaturesCache.set(obj, features);
+  }
+  const asyncAttr = asyncTokens ? ` data-async="${asyncTokens}"` : '';
+  return `<div class="doc-card"${asyncAttr} data-plugin="${plugin.slug}" style="${featuresStyle(features)}">${enhanced}</div>`;
 }
 
 function summarizeFilters(items: AnyMetaObject[]): {

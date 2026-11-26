@@ -1,21 +1,72 @@
 name: Auto Deploy
 
+# Redeploys the site whenever DenizenM, DenizenM-Core or one of the addons (see meta-sources.json) gets a new commit.
+# Every run only asks GitHub for the latest commit of each source branch (git ls-remote, a few seconds);
+# the Vercel deploy hook is called only when that set of commits differs from the last one deployed.
+# Pushes to this repository are deployed by Vercel's Git integration as usual.
+
 on:
   schedule:
-    # Trigger every 6 hours
-    - cron: '0 */6 * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Redeploy even if no source changed'
+        type: boolean
+        default: false
+
+concurrency:
+  group: auto-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  check-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Trigger Vercel Deploy Hook
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            meta-sources.json
+            scripts/check-sources.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Read latest source commits
+        id: sources
+        run: |
+          node scripts/check-sources.mjs > sources-state.json
+          cat sources-state.json
+          echo "fingerprint=$(node -p "require('./sources-state.json').fingerprint")" >> "$GITHUB_OUTPUT"
+
+      # The cache is only used as a marker: an entry keyed by the fingerprint exists once that state was deployed.
+      - name: Check whether this state was already deployed
+        id: last
+        uses: actions/cache/restore@v4
+        with:
+          path: sources-state.json
+          key: meta-sources-${{ steps.sources.outputs.fingerprint }}
+          lookup-only: true
+
+      - name: Trigger Vercel deploy
+        id: deploy
+        if: steps.last.outputs.cache-hit != 'true' || inputs.force == true
         env:
           HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
           if [ -z "$HOOK_URL" ]; then
-            echo "VERCEL_DEPLOY_HOOK secret is not configured; skipping deploy trigger."
+            echo "::warning::VERCEL_DEPLOY_HOOK secret is not configured; nothing was deployed."
             exit 0
           fi
-          curl -fsSL -X POST "$HOOK_URL"
+          echo "Sources changed (or forced) - triggering deploy."
+          curl -fsSL --retry 3 --retry-delay 5 -X POST "$HOOK_URL"
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Remember deployed state
+        if: steps.deploy.outputs.deployed == 'true' && steps.last.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: sources-state.json
+          key: meta-sources-${{ steps.sources.outputs.fingerprint }}

@@ -139,7 +139,7 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
         if (!keywords.includes(untaggedFull)) keywords.push(untaggedFull);
         if (!keywords.includes(untaggedBase)) keywords.push(untaggedBase);
       }
-      const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
+      const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
       if (tagAsync.isSafe) {
         if (!keywords.includes('async')) keywords.push('async');
         if (!keywords.includes('async-safe')) keywords.push('async-safe');

@@ -1,222 +1,116 @@
 /**
  * DenizenM Async Safety Registry & Metadata Helper
  *
- * Mappings directly extracted from DenizenM-Tjtoxshpilivili1 CommonRegistries.java
- * and DenizenM-Core AbstractCommand.java / TagManager.java.
+ * The live data is extracted from the Java sources on every meta sync (see `async-safety-parser.ts`):
+ * command classes (`asyncSafe` / `setAsyncDeferrable` ...), the `@asyncsave` / `@asyncbase` / `@asynccmd` map in
+ * CommonRegistries.java, and the `TagManager.markMainThreadOnly(...)` calls. It is stored in `denizen-meta.json`
+ * and applied with `setAsyncSafetyData`, so a change in DenizenM, DenizenM-Core or an addon shows up on the next sync.
+ *
+ * `FALLBACK_ASYNC_SAFETY` below is only used when no markings could be found (eg custom `DENIZEN_SOURCES`).
  */
 
-// Commands that run directly on the async queue's worker thread without main-thread hand-off
-export const ASYNC_RUNS_COMMANDS = new Set<string>([
-  'actionbar',
-  'announce',
-  'async',
-  'choose',
-  'debug',
-  'debug-invalid-command',
-  'debugblock',
-  'define',
-  'definemap',
-  'determine',
-  'draw',
-  'else',
-  'filecopy',
-  'fileread',
-  'filewrite',
-  'flag',
-  'foreach',
-  'goto',
-  'if',
-  'image',
-  'inject',
-  'log',
-  'mark',
-  'narrate',
-  'playeffect',
-  'playsound',
-  'random',
-  'ratelimit',
-  'redis',
-  'repeat',
-  'run',
-  'schematic',
-  'sidebar',
-  'sql',
-  'stop',
-  'tablist',
-  'title',
-  'toast',
-  'wait',
-  'waituntil',
-  'webget',
-  'webserver',
-  'while',
-  'yaml',
-]);
+import type { AsyncSafetyData } from './async-safety-parser';
 
-// Commands that an async script may fire off to the main thread and carry on without waiting
-export const ASYNC_DEFERRABLE_COMMANDS: Record<string, string> = {
-  actionbar: 'Deferrable when targeting per-player',
-  announce: 'Deferrable off-thread broadcast',
-  compass: 'Deferrable per-player compass target',
-  fakeequip: 'Deferrable visual equipment update',
-  narrate: 'Deferrable when targeting per-player',
-  playeffect: 'Deferrable particle/sound visual effect',
-  playsound: 'Deferrable per-player or world sound playback',
-  runlater: 'Deferrable with persistent id',
-  showfake: 'Deferrable fake block/entity display',
-  sidebar: 'Deferrable per-player sidebar update',
+export type { AsyncSafetyData } from './async-safety-parser';
+
+const FLAG_TAGS = ['flag', 'flag_expiration', 'flag_map', 'has_flag', 'list_flags'];
+
+/** Snapshot of the markings as of 2026-11; only a fallback, the sync replaces it with what the sources say. */
+export const FALLBACK_ASYNC_SAFETY: AsyncSafetyData = {
+  commands: Object.fromEntries([
+    ...[
+      'async', 'choose', 'debug', 'debug-invalid-command', 'debugblock', 'define', 'definemap', 'determine', 'draw', 'else',
+      'filecopy', 'fileread', 'filewrite', 'flag', 'foreach', 'goto', 'if', 'image', 'inject', 'log', 'mark', 'mongo',
+      'random', 'ratelimit', 'redis', 'repeat', 'run', 'schematic', 'sql', 'stop', 'tablist', 'title', 'toast', 'wait',
+      'waituntil', 'webget', 'webserver', 'while', 'yaml',
+    ].map((n) => [n, { runsAsync: true, deferrable: false }]),
+    ['actionbar', { runsAsync: true, deferrable: true, deferrableQualifier: 'per_player' }],
+    ['announce', { runsAsync: true, deferrable: true }],
+    ['narrate', { runsAsync: true, deferrable: true, deferrableQualifier: 'per_player' }],
+    ['playeffect', { runsAsync: true, deferrable: true }],
+    ['playsound', { runsAsync: true, deferrable: true }],
+    ['sidebar', { runsAsync: true, deferrable: true, deferrableQualifier: 'per_player' }],
+    ['compass', { runsAsync: false, deferrable: true }],
+    ['fakeequip', { runsAsync: false, deferrable: true }],
+    ['runlater', { runsAsync: false, deferrable: true, deferrableQualifier: 'id' }],
+    ['showfake', { runsAsync: false, deferrable: true }],
+  ]),
+  safeAllTypes: [
+    'binarytag', 'biometag', 'colortag', 'customobjecttag', 'durationtag', 'elementtag', 'enchantmenttag', 'imagetag',
+    'javareflectedobjecttag', 'listtag', 'maptag', 'materialtag', 'plugintag', 'quaterniontag', 'queuetag', 'scripttag',
+    'secrettag', 'timetag', 'tradetag',
+  ],
+  safeSubTags: {
+    chunktag: ['add', 'cuboid', 'is_loaded', 'simple', 'sub', 'world', 'x', 'xz', 'z'],
+    inventorytag: ['id_type', 'inventory_type', 'note_name'],
+  },
+  mainThreadBases: ['biome', 'entity', 'inventory', 'item', 'npc', 'player', 'plugin', 'server', 'world'],
+  bareSafeBases: ['npc', 'player'],
+  baseSafeSubTags: Object.fromEntries(
+    ['biome', 'entity', 'inventory', 'item', 'plugin', 'world', 'server', 'player'].map((b) => [b, FLAG_TAGS])
+  ),
+  awareRepos: ['energobro/denizenm-core', 'energobro/denizenm-tjtoxshpilivili1'],
 };
 
-// Object types where every tag is safe off the main thread (both full ObjectType and constructor base)
-export const ASYNC_SAFE_ALL_OBJECT_TYPES = new Set<string>([
-  'biometag', 'biome',
-  'plugintag', 'plugin',
-  'tradetag', 'trade',
-  'binarytag', 'binary',
-  'colortag', 'color',
-  'customobjecttag', 'custom_object',
-  'durationtag', 'duration',
-  'elementtag', 'element',
-  'imagetag', 'image',
-  'javareflectedobjecttag', 'reflected',
-  'listtag', 'list', 'list_single',
-  'maptag', 'map',
-  'quaterniontag', 'quaternion',
-  'queuetag', 'queue',
-  'scripttag', 'script',
-  'secrettag', 'secret',
-  'timetag', 'time',
-  'enchantmenttag', 'enchantment',
-  'materialtag', 'material',
-  // Queue & script execution memory tags
-  'definition', 'def', 'context', 'entry', 'proc', 'static', 'tern',
-]);
+// Script-memory bases and constructor aliases that are not object types but are always safe (they read the queue's own data).
+const QUEUE_MEMORY_BASES = new Set(['definition', 'def', 'context', 'entry', 'proc', 'static', 'tern', 'list_single', 'reflected', 'custom_object']);
 
 // Minecraft color and formatting codes that evaluate statically off-thread
-export const COLOR_FORMATTING_TAGS = new Set<string>([
+const COLOR_FORMATTING_TAGS = new Set<string>([
   'aqua', 'black', 'blue', 'bold', 'dark_aqua', 'dark_blue', 'dark_gray',
   'dark_green', 'dark_purple', 'dark_red', 'gold', 'gray', 'green', 'italic',
   'light_purple', 'magic', 'red', 'reset', 'strikethrough', 'underline', 'white', 'yellow',
-  '&0', '&1', '&2', '&3', '&4', '&5', '&6', '&7', '&8', '&9',
-  '&a', '&b', '&c', '&d', '&e', '&f', '&k', '&l', '&m', '&n', '&o', '&r',
-  '&nl', '&sp', '&nbsp', '&ss', '&at', '&sq', '&dq', '&co', '&sc', '&cm',
-  '&chr', '&pc', '&perc', '&hash', '&lt', '&gt', '&lb', '&rb', '&lc', '&rc',
-  '&bs', '&fs', '&pipe', '&tilde', '&dash', '&dot', '&colon', '&semi',
 ]);
 
-// Types that are safe with minor exceptions
-export const ASYNC_UNSAFE_EXCEPTIONS: Record<string, Set<string>> = {};
+interface ActiveState {
+  data: AsyncSafetyData;
+  safeAll: Set<string>;
+  safeSub: Map<string, Set<string>>;
+  mainBases: Set<string>;
+  bareBases: Set<string>;
+  baseSub: Map<string, Set<string>>;
+  awareRepos: string[];
+}
 
-// Object types with specific sub-tags marked safe off-thread
-export const ASYNC_SAFE_SUBTAGS: Record<string, Set<string>> = {
-  chunktag: new Set(['add', 'cuboid', 'is_loaded', 'simple', 'sub', 'world', 'x', 'xz', 'z']),
+function buildState(data: AsyncSafetyData): ActiveState {
+  const toMap = (rec: Record<string, string[]>) =>
+    new Map(Object.entries(rec || {}).map(([k, v]) => [k.toLowerCase(), new Set(v.map((s) => s.toLowerCase()))]));
+  return {
+    data,
+    safeAll: new Set((data.safeAllTypes || []).map((s) => s.toLowerCase())),
+    safeSub: toMap(data.safeSubTags),
+    mainBases: new Set((data.mainThreadBases || []).map((s) => s.toLowerCase())),
+    bareBases: new Set((data.bareSafeBases || []).map((s) => s.toLowerCase())),
+    baseSub: toMap(data.baseSafeSubTags),
+    awareRepos: (data.awareRepos || []).map((s) => s.toLowerCase()),
+  };
+}
 
-  cuboidtag: new Set([
-    'center', 'contains', 'contains_cuboid', 'contains_location', 'corners',
-    'flag', 'flag_expiration', 'flag_map', 'get_outline', 'has_flag',
-    'intersects', 'is_within', 'list_flags', 'max', 'min', 'outline',
-    'outline_2d', 'shell', 'shift', 'size', 'volume', 'walls', 'with_max', 'with_min',
-  ]),
+// Kept on globalThis so every server bundle that imports this module sees the same data.
+const STATE_KEY = Symbol.for('denizenm.asyncSafetyState');
+type GlobalWithState = typeof globalThis & { [STATE_KEY]?: ActiveState };
 
-  ellipsoidtag: new Set([
-    'add', 'bounding_box', 'chunks', 'contains', 'contains_location',
-    'flag', 'flag_expiration', 'flag_map', 'has_flag', 'include',
-    'is_within', 'list_flags', 'location', 'random', 'shell', 'size',
-    'with_location', 'with_size', 'world',
-  ]),
+function state(): ActiveState {
+  const g = globalThis as GlobalWithState;
+  if (!g[STATE_KEY]) g[STATE_KEY] = buildState(FALLBACK_ASYNC_SAFETY);
+  return g[STATE_KEY]!;
+}
 
-  entitytag: new Set(['entity_type', 'script', 'translated_name', 'type', 'uuid']),
+/** Applies freshly parsed (or loaded) markings; `null` / missing keeps the built-in fallback. */
+export function setAsyncSafetyData(data: AsyncSafetyData | null | undefined): void {
+  (globalThis as GlobalWithState)[STATE_KEY] = buildState(data && data.commands ? data : FALLBACK_ASYNC_SAFETY);
+}
 
-  inventorytag: new Set([]),
+export function getAsyncSafetyData(): AsyncSafetyData {
+  return state().data;
+}
 
-  itemtag: new Set([
-    'book_author', 'book_map', 'book_pages', 'book_title', 'display',
-    'durability', 'enchantment_map', 'enchantment_types', 'enchantments',
-    'flag', 'flag_expiration', 'flag_map', 'has_display', 'has_flag',
-    'has_lore', 'is_enchanted', 'list_flags', 'lore', 'material',
-    'max_stack', 'quantity', 'script', 'with_flag',
-  ]),
-
-  locationtag: new Set([
-    'above', 'add', 'backward', 'backward_flat', 'below', 'center', 'chunk',
-    'distance', 'distance_squared', 'div', 'down', 'format', 'formatted',
-    'forward', 'forward_flat', 'get_chunk', 'left', 'mul', 'normalize',
-    'pitch', 'points_around_x', 'points_around_y', 'points_around_z',
-    'points_between', 'quaternion_between_vectors', 'random_offset', 'raw',
-    'relative', 'right', 'rotate_around_x', 'rotate_around_y', 'rotate_around_z',
-    'rotate_pitch', 'rotate_yaw', 'round', 'round_down', 'round_to',
-    'round_to_precision', 'round_up', 'simple', 'simplex_3d', 'sub',
-    'to_axis_angle_quaternion', 'up', 'vector_length', 'vector_length_squared',
-    'vector_to_face', 'with_pitch', 'with_x', 'with_y', 'with_yaw', 'with_z',
-    'world', 'x', 'xyz', 'y', 'yaw', 'z',
-  ]),
-
-  npctag: new Set([]),
-
-  playertag: new Set([
-    'ban_created', 'ban_created_time', 'ban_expiration', 'ban_expiration_time',
-    'ban_info', 'ban_reason', 'ban_source', 'chat_history', 'chat_history_list',
-    'disguise_to_self', 'fake_block', 'fake_block_locations', 'fake_entities',
-    'first_played', 'first_played_time', 'flag', 'flag_expiration', 'flag_map',
-    'has_flag', 'has_played_before', 'is_banned', 'is_online', 'is_op',
-    'is_player', 'is_whitelisted', 'last_played', 'last_played_time',
-    'list_flags', 'name', 'sidebar_lines', 'sidebar_scores', 'sidebar_title',
-    'uuid', 'whitelisted',
-  ]),
-
-  polygontag: new Set([
-    'bounding_box', 'contains', 'contains_inclusive', 'contains_location',
-    'corners', 'flag', 'flag_expiration', 'flag_map', 'has_flag',
-    'include_y', 'is_within', 'list_flags', 'max_y', 'min_y', 'outline',
-    'outline_2d', 'shell', 'shell_inclusive', 'shift', 'with_corner',
-    'with_y_max', 'with_y_min', 'world',
-  ]),
-
-  worldtag: new Set([
-    'allows_animals', 'allows_monsters', 'allows_pvp', 'ambient_spawn_limit',
-    'animal_spawn_limit', 'auto_save', 'can_generate_structures', 'difficulty',
-    'duration_since_created', 'environment', 'hardcore', 'has_storm',
-    'is_day', 'is_night', 'keep_spawn', 'max_height', 'min_height',
-    'monster_spawn_limit', 'moon_phase', 'name', 'sea_level', 'seed',
-    'simulation_distance', 'sky_darkness', 'thunder_duration', 'thundering',
-    'ticks_per_animal_spawn', 'ticks_per_monster_spawn', 'time',
-    'time_duration', 'time_full', 'time_period', 'view_distance',
-    'water_animal_spawn_limit', 'weather_duration', 'world_type',
-  ]),
-
-  servertag: new Set([
-    'art_types', 'nbt_attribute_types', 'damage_causes', 'teleport_causes',
-    'particle_types', 'effect_types', 'pattern_types', 'potion_types',
-    'tree_types', 'map_cursor_types', 'world_types', 'entity_types',
-    'material_types', 'sound_keys', 'statistic_types', 'statistic_type',
-    'structures', 'enchantments', 'gamerules', 'max_players', 'motd',
-    'view_distance', 'port', 'idle_timeout', 'bukkit_name', 'bukkit_version',
-    'version', 'denizen_version', 'has_permissions', 'has_economy',
-    'recent_tps', 'players', 'offline_players', 'online_ops', 'offline_ops',
-    'online_players', 'online_players_flagged', 'ops', 'has_whitelist',
-    'whitelisted_players', 'banned_players', 'banned_addresses', 'is_banned',
-    'match_player', 'match_offline_player', 'potion_effect_types',
-    'color_names',
-  ]),
-};
-
-// Tag bases that are safe bare (e.g. <player> or <npc>)
-export const BARE_SAFE_BASES = new Set(['player', 'npc']);
-
-// Util tags that are safe off-thread
-export const UTIL_ASYNC_SAFE_TAGS = new Set([
-  'current_thread',
-  'is_main_thread',
-  'current_time_nanos',
-  'linger_stats',
-  'pi',
-  'tau',
-  'e',
-  'random',
-  'random_decimal',
-  'random_uuid',
-  'time_now',
-]);
+/** True when the entry comes from a source that actually declares async markings (DenizenM / DenizenM-Core). */
+function isAwareSource(sourceFile?: string): boolean {
+  if (!sourceFile) return true;
+  const low = sourceFile.toLowerCase();
+  return state().awareRepos.some((repo) => low.includes(`github.com/${repo}/`));
+}
 
 export interface CommandAsyncInfo {
   runsAsync: boolean;
@@ -238,11 +132,23 @@ function makeMainBadge(text: string): string {
   return `<span class="badge-async-main">${text}</span>`;
 }
 
+function describeDeferQualifier(qualifier?: string): string {
+  if (!qualifier) return 'Deferrable: fired to the main thread without waiting';
+  if (qualifier === 'per_player') return 'Deferrable when targeting per-player';
+  if (qualifier === 'id') return 'Deferrable with persistent id';
+  return `Deferrable when used with ${qualifier.replace(/_/g, ' ')}`;
+}
+
 export function getCommandAsyncStatus(commandName: string): CommandAsyncInfo {
   const clean = commandName.trim().toLowerCase();
-  const runsAsync = ASYNC_RUNS_COMMANDS.has(clean);
-  const deferrable = clean in ASYNC_DEFERRABLE_COMMANDS;
-  const deferrableDetails = ASYNC_DEFERRABLE_COMMANDS[clean];
+  const marking = state().data.commands[clean];
+  const runsAsync = !!marking?.runsAsync;
+  const deferrable = !!marking?.deferrable;
+  const conditional = !!marking?.runsAsyncConditional;
+  const deferrableDetails = deferrable ? describeDeferQualifier(marking?.deferrableQualifier) : undefined;
+  const runText = conditional
+    ? `Runs on the async queue's worker thread for most uses (depends on its arguments, see the command description); otherwise handed to the main thread.`
+    : `Runs directly on the async queue's worker thread without main-thread hand-off.`;
 
   if (runsAsync && deferrable) {
     return {
@@ -250,7 +156,7 @@ export function getCommandAsyncStatus(commandName: string): CommandAsyncInfo {
       deferrable: true,
       deferrableDetails,
       badgeHtml: `${makeSafeBadge('Runs Off-Thread')} ${makeDeferBadge('Deferrable')}`,
-      descriptionText: `Runs on the async queue's worker thread without main-thread hand-off. Also deferrable (${deferrableDetails.toLowerCase()}).`,
+      descriptionText: `${runText} Also deferrable (${deferrableDetails!.toLowerCase()}).`,
     };
   }
 
@@ -259,7 +165,7 @@ export function getCommandAsyncStatus(commandName: string): CommandAsyncInfo {
       runsAsync: true,
       deferrable: false,
       badgeHtml: makeSafeBadge('Runs Off-Thread'),
-      descriptionText: `Runs directly on the async queue's worker thread without main-thread hand-off.`,
+      descriptionText: runText,
     };
   }
 
@@ -287,161 +193,92 @@ export interface TagAsyncInfo {
   descriptionText: string;
 }
 
-// Tag bases that require live server lookups (e.g. <world[...]> or <entity[...]>)
-export const MAIN_THREAD_ONLY_BASES = new Set<string>([
-  'biome', 'biometag',
-  'chunk', 'chunktag',
-  'cuboid', 'cuboidtag',
-  'ellipsoid', 'ellipsoidtag',
-  'enchantment', 'enchantmenttag',
-  'entity', 'entitytag',
-  'inventory', 'inventorytag',
-  'item', 'itemtag',
-  'plugin', 'plugintag',
-  'polygon', 'polygontag',
-  'trade', 'tradetag',
-  'world', 'worldtag',
-  'server', 'servertag',
-]);
+const SAFE = (descriptionText: string): TagAsyncInfo => ({
+  isSafe: true,
+  badgeHtml: makeSafeBadge('Async-Safe'),
+  descriptionText,
+});
 
-export function getTagAsyncStatus(cleanTagName: string, beforeDotRaw = '', afterDotRaw = ''): TagAsyncInfo {
+const MAIN = (descriptionText: string): TagAsyncInfo => ({
+  isSafe: false,
+  badgeHtml: makeMainBadge('Main Thread Hand-Off'),
+  descriptionText,
+});
+
+const MAIN_DEFAULT = MAIN(
+  `Reads live server state; automatically evaluated on the main thread when called from an async queue.`
+);
+
+export function getTagAsyncStatus(
+  cleanTagName: string,
+  beforeDotRaw = '',
+  afterDotRaw = '',
+  sourceFile?: string
+): TagAsyncInfo {
+  const st = state();
   const cleanTag = cleanTagName.trim().toLowerCase();
   const beforeDot = (beforeDotRaw || (cleanTag.includes('.') ? cleanTag.split('.')[0] : cleanTag)).toLowerCase();
   const afterDot = (afterDotRaw || (cleanTag.includes('.') ? cleanTag.slice(beforeDot.length + 1) : '')).toLowerCase();
   const firstAttr = afterDot.split('.')[0].replace(/\[.*\]/g, '').trim();
+  const aware = isAwareSource(sourceFile);
 
-  // Normalize beforeDot so both 'color' and 'colortag', 'location' and 'locationtag' match
-  const typeKey = beforeDot.endsWith('tag') ? beforeDot : beforeDot + 'tag';
-  const baseKey = beforeDot.endsWith('tag') ? beforeDot.slice(0, -3) : beforeDot;
-
-  // 0. Base tags (e.g. <color[...]>, <element[...]>, <list[...]>, <red>, <bold>, <location[...]>)
+  // 0. Base tags (eg <color[...]>, <list[...]>, <red>, <&a>, <player>, <location[...]>)
   if (beforeDot === 'base') {
-    const baseTarget = (firstAttr || cleanTag).replace(/\[.*\]/g, '').trim().toLowerCase();
-    const baseTargetType = baseTarget.endsWith('tag') ? baseTarget : baseTarget + 'tag';
-
-    if (MAIN_THREAD_ONLY_BASES.has(baseTarget) || MAIN_THREAD_ONLY_BASES.has(baseTargetType)) {
-      return {
-        isSafe: false,
-        badgeHtml: makeMainBadge('Main Thread Hand-Off'),
-        descriptionText: `Reads live server state; automatically dispatched to the main thread when evaluated from an async queue.`,
-      };
+    const target = (firstAttr || cleanTag).replace(/\[.*\]/g, '').trim();
+    if (COLOR_FORMATTING_TAGS.has(target) || target.startsWith('&')) {
+      return SAFE(`Pure static formatting code: evaluates directly on the async worker thread with 0ms latency.`);
     }
-
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Pure data constructor / static format: evaluates directly on the async worker thread (0ms latency, no main-thread hand-off).`,
-    };
-  }
-
-  // 1. Color and Minecraft text formatting code tags (e.g. <red>, <bold>, <&a>, <&nl>)
-  if (COLOR_FORMATTING_TAGS.has(cleanTag) || cleanTag.startsWith('&')) {
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Pure static formatting code: evaluates directly on the async worker thread with 0ms latency.`,
-    };
-  }
-
-  // 2. Check if the type has ALL tags async safe (ColorTag, ElementTag, ListTag, MapTag, DurationTag, TimeTag, etc.)
-  if (
-    ASYNC_SAFE_ALL_OBJECT_TYPES.has(typeKey) ||
-    ASYNC_SAFE_ALL_OBJECT_TYPES.has(baseKey) ||
-    ASYNC_SAFE_ALL_OBJECT_TYPES.has(beforeDot)
-  ) {
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Pure data processing: evaluates directly on the async script's worker thread (0ms latency, no main-thread hand-off).`,
-    };
-  }
-
-  // 3. Types with exceptions (EnchantmentTag, MaterialTag)
-  if (typeKey in ASYNC_UNSAFE_EXCEPTIONS || baseKey in ASYNC_UNSAFE_EXCEPTIONS) {
-    const unsafeSet = ASYNC_UNSAFE_EXCEPTIONS[typeKey] || ASYNC_UNSAFE_EXCEPTIONS[baseKey];
-    if (unsafeSet && unsafeSet.has(firstAttr)) {
-      return {
-        isSafe: false,
-        badgeHtml: makeMainBadge('Main Thread Hand-Off'),
-        descriptionText: `This specific sub-tag requires live server state and is handed to the main thread.`,
-      };
+    if (st.mainBases.has(target)) {
+      if (st.bareBases.has(target)) {
+        return SAFE(
+          `Written bare (<${target}>) it hands back the queue's linked object with no main-thread hand-off. With a parameter, or followed by a sub-tag that is not async-safe, it is handed to the main thread.`
+        );
+      }
+      return MAIN(`Reads live server state; automatically dispatched to the main thread when evaluated from an async queue.`);
     }
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Registry / constant data: evaluates directly on the async worker thread without hand-off.`,
-    };
+    return SAFE(`Pure data constructor / static format: evaluates directly on the async worker thread (0ms latency, no main-thread hand-off).`);
   }
 
-  // 4. Types with safe sub-tags (LocationTag, ItemTag, ChunkTag, CuboidTag, WorldTag, PlayerTag, etc.)
-  const subtagSet = ASYNC_SAFE_SUBTAGS[typeKey] || ASYNC_SAFE_SUBTAGS[baseKey];
-  if (subtagSet && subtagSet.has(firstAttr)) {
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Memory / cached field: safe off the main thread (0ms latency, thread-safe access).`,
-    };
-  }
-
-  // 5. Server static tags
-  if (baseKey === 'server' || typeKey === 'servertag') {
-    if (ASYNC_SAFE_SUBTAGS.servertag.has(firstAttr)) {
-      return {
-        isSafe: true,
-        badgeHtml: makeSafeBadge('Async-Safe'),
-        descriptionText: `Static server registry / cached value: safe off the main thread.`,
-      };
+  // 1. Object types (eg <ElementTag.x>, <PlayerTag.name>). Type markings apply to every tag on the type,
+  //    including extension tags an addon registers onto it.
+  if (beforeDot.endsWith('tag')) {
+    if (st.safeAll.has(beforeDot)) {
+      return SAFE(`Pure data processing: evaluates directly on the async script's worker thread (0ms latency, no main-thread hand-off).`);
     }
-  }
-
-  // 6. Util tags
-  if (baseKey === 'util' || typeKey === 'utiltag') {
-    if (
-      UTIL_ASYNC_SAFE_TAGS.has(firstAttr) ||
-      firstAttr.startsWith('random') ||
-      firstAttr.startsWith('current') ||
-      firstAttr === 'pi' ||
-      firstAttr === 'tau' ||
-      firstAttr === 'e' ||
-      firstAttr === 'time_now' ||
-      firstAttr === 'linger_stats' ||
-      firstAttr === 'color_names'
-    ) {
-      return {
-        isSafe: true,
-        badgeHtml: makeSafeBadge('Async-Safe'),
-        descriptionText: `Utility computation: runs directly on the async script's thread.`,
-      };
+    const sub = st.safeSub.get(beforeDot);
+    if (sub && sub.has(firstAttr)) {
+      return SAFE(`Memory / cached field: safe off the main thread (0ms latency, thread-safe access).`);
     }
+    return MAIN_DEFAULT;
   }
 
-  // 7. Bare tag base / constructor check (e.g. <player>, <npc>, <location[...]>, <material[...]>)
-  if (!afterDot && (baseKey === 'location' || baseKey === 'material' || BARE_SAFE_BASES.has(baseKey) || BARE_SAFE_BASES.has(typeKey))) {
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Evaluates directly on the async worker thread without main-thread hand-off.`,
-    };
+  // Addon tag bases (Depenizen, dDiscordBot, ...) declare nothing about async; stay conservative.
+  if (!aware) return MAIN_DEFAULT;
+
+  if (QUEUE_MEMORY_BASES.has(beforeDot)) {
+    return SAFE(`Reads the queue's own data: evaluates directly on the async worker thread.`);
   }
 
-  // 8. Core mathematical or queue tags
-  if (
-    cleanTag.includes('async') ||
-    cleanTag.startsWith('queue.') ||
-    cleanTag.startsWith('queuetag.')
-  ) {
-    return {
-      isSafe: true,
-      badgeHtml: makeSafeBadge('Async-Safe'),
-      descriptionText: `Async queue introspection: evaluates on the queue's worker thread.`,
-    };
+  // 2. Lower-case tag bases (eg <server.x>, <util.x>, <yaml[...].x>)
+  if (st.mainBases.has(beforeDot)) {
+    const sub = st.baseSub.get(beforeDot);
+    if (sub && sub.has(firstAttr)) {
+      return SAFE(
+        beforeDot === 'server'
+          ? `Static server registry / saved data: safe off the main thread.`
+          : `Thread-safe data (eg flags): safe off the main thread.`
+      );
+    }
+    return MAIN_DEFAULT;
   }
 
-  return {
-    isSafe: false,
-    badgeHtml: makeMainBadge('Main Thread Hand-Off'),
-    descriptionText: `Reads live server state; automatically evaluated on the main thread when called from an async queue.`,
-  };
+  // Interface-like pseudo types (AreaObject, ObjectTag, VectorObject, ...) depend on the real object; stay conservative.
+  if (/[A-Z]/.test(beforeDotRaw)) {
+    return MAIN_DEFAULT;
+  }
+
+  // Bases that are not marked main-thread-only run in place on the async thread (see <@link language Async Tag Safety>).
+  return SAFE(`Tag base is not marked main-thread-only: runs directly on the async script's thread.`);
 }
 
 export function getObjectTypeAsyncStatus(cleanTypeName: string): {
@@ -451,9 +288,11 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
   badgeHtml: string;
   descriptionText: string;
 } {
-  const clean = cleanTypeName.toLowerCase().endsWith('tag') ? cleanTypeName.toLowerCase() : cleanTypeName.toLowerCase() + 'tag';
+  const st = state();
+  const low = cleanTypeName.toLowerCase();
+  const clean = low.endsWith('tag') ? low : low + 'tag';
 
-  if (ASYNC_SAFE_ALL_OBJECT_TYPES.has(clean)) {
+  if (st.safeAll.has(clean)) {
     return {
       isFullSafe: true,
       isPartial: false,
@@ -463,28 +302,16 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
     };
   }
 
-  if (clean in ASYNC_UNSAFE_EXCEPTIONS) {
-    const count = ASYNC_UNSAFE_EXCEPTIONS[clean].size;
+  // Pseudo types that are really tag bases (eg 'server'): use the base's safe sub-tags.
+  const set = st.safeSub.get(clean) || (st.mainBases.has(low) ? st.baseSub.get(low) : undefined);
+  if (set && set.size > 0) {
     return {
-      isFullSafe: true,
-      isPartial: false,
-      safeCount: 999,
-      badgeHtml: makeSafeBadge(`Async-Safe (${count} exceptions)`),
-      descriptionText: `Safe off the main thread except for ${Array.from(ASYNC_UNSAFE_EXCEPTIONS[clean]).join(', ')}.`,
+      isFullSafe: false,
+      isPartial: true,
+      safeCount: set.size,
+      badgeHtml: makeDeferBadge(`Partial Async-Safe (${set.size} tags)`),
+      descriptionText: `${set.size} sub-tags are safe off the main thread (${[...set].slice(0, 6).join(', ')}${set.size > 6 ? ', …' : ''}). Live server reads hand off.`,
     };
-  }
-
-  if (clean in ASYNC_SAFE_SUBTAGS) {
-    const set = ASYNC_SAFE_SUBTAGS[clean];
-    if (set.size > 0) {
-      return {
-        isFullSafe: false,
-        isPartial: true,
-        safeCount: set.size,
-        badgeHtml: makeDeferBadge(`Partial Async-Safe (${set.size} tags)`),
-        descriptionText: `${set.size} sub-tags are safe off the main thread (arithmetic, coordinates, thread-safe flags). Live server reads hand off.`,
-      };
-    }
   }
 
   return {
@@ -494,4 +321,37 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
     badgeHtml: makeMainBadge('Main Thread Only'),
     descriptionText: `Object wraps live Minecraft / Bukkit entities or state. Tags require main thread execution.`,
   };
+}
+
+/** Plain-text body of the generated "Async Tag Safety Map" language page. */
+export function describeAsyncSafetyMap(): string {
+  const d = state().data;
+  const typeName = (low: string) => low.replace(/tag$/, '').replace(/^./, (c) => c.toUpperCase()) + 'Tag';
+  const cmds = Object.entries(d.commands);
+  const runs = cmds.filter(([, m]) => m.runsAsync).map(([n, m]) => (m.runsAsyncConditional ? `${n}*` : n));
+  const defer = cmds
+    .filter(([, m]) => m.deferrable)
+    .map(([n, m]) => (m.deferrableQualifier ? `${n}(${m.deferrableQualifier})` : n));
+  const partial = Object.entries(d.safeSubTags).sort(([a], [b]) => a.localeCompare(b));
+  const baseSub = Object.entries(d.baseSafeSubTags).filter(([, v]) => v.length > 0);
+
+  return (
+    `Complete machine-readable mapping of DenizenM Async Safety for commands, tag bases, and object types.\n` +
+    `Generated automatically from the DenizenM / DenizenM-Core sources on every sync.\n\n` +
+    `=== ASYNC COMMAND MAP ===\n` +
+    `Commands an async queue can run directly on its own thread (${runs.length} commands, * = depends on arguments):\n` +
+    `${runs.join(', ')}.\n\n` +
+    `Deferrable commands (can be dispatched to main thread without stalling the async script):\n` +
+    `${defer.join(', ')}.\n\n` +
+    `=== ASYNC TAG SAFETY MAP ===\n` +
+    `Object types where 100% of tags are safe off the main thread (pure data / immutable objects):\n` +
+    `${d.safeAllTypes.map(typeName).join(', ')}.\n\n` +
+    `Object types with specific async-safe sub-tags (anything not listed is handed to the main thread):\n` +
+    partial.map(([t, list]) => `- ${typeName(t)}: ${list.length ? list.join(', ') : '(none)'}`).join('\n') +
+    `\n\n=== TAG BASES ===\n` +
+    `- mainThreadOnly: ${d.mainThreadBases.join(', ')}\n` +
+    `- bareSafe: ${d.bareSafeBases.join(', ')} (reading the bare base hands back the queue's linked object with 0 hand-offs)\n` +
+    baseSub.map(([b, list]) => `- <${b}.*> safe sub-tags: ${list.join(', ')}`).join('\n') +
+    `\n- Every other tag base is not marked, and runs directly on the async script's own thread.`
+  );
 }

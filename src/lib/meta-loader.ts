@@ -33,16 +33,16 @@ import {
   getCommandAsyncStatus,
   getTagAsyncStatus,
   getObjectTypeAsyncStatus,
+  describeAsyncSafetyMap,
+  setAsyncSafetyData,
 } from './async-safety';
+import { AsyncSafetyCollector, repoFromSourceUrl } from './async-safety-parser';
+import metaSources from '../../meta-sources.json';
 
-export const DEFAULT_SOURCES = process.env.DENIZEN_SOURCES
+// Single list shared with the auto-deploy workflow (scripts/check-sources.mjs).
+export const DEFAULT_SOURCES: string[] = process.env.DENIZEN_SOURCES
   ? process.env.DENIZEN_SOURCES.split(',').map((s) => s.trim())
-  : [
-      'https://github.com/Energobro/DenizenM-Tjtoxshpilivili1/archive/master.zip',
-      'https://github.com/Energobro/DenizenM-Core/archive/main.zip',
-      'https://github.com/DenizenScript/Depenizen/archive/master.zip',
-      'https://github.com/DenizenScript/dDiscordBot/archive/master.zip',
-    ];
+  : metaSources.sources;
 
 const HTML_PREFIX = '<table class="table table-hover"><tbody>\n';
 const HTML_SUFFIX = '</tbody></table>\n';
@@ -374,7 +374,8 @@ export async function downloadFile(url: string, destPath: string, forceDownload 
 
 export function parseRawMetaBlocks(
   zipBuffer: Buffer,
-  sourceUrl: string
+  sourceUrl: string,
+  visitJavaFile?: (content: string) => void
 ): Array<{ type: string; url: string; pairs: Array<[string, string]> }> {
   const zip = new AdmZip(zipBuffer);
   const entries = zip.getEntries();
@@ -383,6 +384,7 @@ export function parseRawMetaBlocks(
   for (const entry of entries) {
     if (!entry.entryName.endsWith('.java')) continue;
     const content = entry.getData().toString('utf8');
+    visitJavaFile?.(content);
     const lines = content.split('\n');
 
     let inMeta = false;
@@ -507,7 +509,7 @@ export function buildSearchables(obj: BaseMetaObject): SearchableHelpers {
       perfectMatches.push('<' + untaggedFull + '>');
       synonyms.push(untaggedPrefix);
     }
-    const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
+    const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
     if (tagAsync.isSafe) {
       if (!synonyms.includes('async')) synonyms.push('async');
       if (!synonyms.includes('async-safe')) synonyms.push('async-safe');
@@ -636,6 +638,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
 
   const rawBlocks: Array<{ type: string; url: string; pairs: Array<[string, string]> }> = [];
   const loadErrors: string[] = [];
+  const asyncCollector = new AsyncSafetyCollector();
 
   for (const src of sources) {
     try {
@@ -643,13 +646,21 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
       const fileName = `${path.basename(src).replace('.zip', '')}-${hash}.zip`;
       const cachePath = path.join(cacheDir, fileName);
       const zipBuf = await downloadFile(src, cachePath, forceDownload);
-      const parsed = parseRawMetaBlocks(zipBuf, src);
+      const repo = repoFromSourceUrl(src);
+      const parsed = parseRawMetaBlocks(zipBuf, src, (content) => asyncCollector.visitJavaFile(content, repo));
       rawBlocks.push(...parsed);
     } catch (err: any) {
       console.error(`Error loading source ${src}:`, err);
       loadErrors.push(`Source download error ${src}: ${err.message}`);
     }
   }
+
+  // Async-safety badges, filters and search keywords below all read this, so it must be applied first.
+  const asyncSafety = asyncCollector.result();
+  if (!asyncSafety) {
+    console.warn('No async-safety markings found in the sources; using the built-in fallback table.');
+  }
+  setAsyncSafetyData(asyncSafety);
 
   const commands: Record<string, MetaCommandObject> = {};
   const tags: Record<string, MetaTagObject> = {};
@@ -1043,34 +1054,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
       },
       searchHelper: { perfectMatches: [], synonyms: [], strongs: [], decents: [], backups: [] },
       htmlContent: '',
-      description: `Complete machine-readable mapping of DenizenM Async Safety for commands, tag bases, and object types.\n\n` +
-        `=== ASYNC COMMAND MAP ===\n` +
-        `Commands an async queue can run directly on its own thread (44 commands):\n` +
-        `actionbar, announce, async, choose, debug, debug-invalid-command, debugblock, define, definemap, determine, draw, else, filecopy, fileread, filewrite, flag, foreach, goto, if, image, inject, log, mark, narrate, playeffect, playsound, random, ratelimit, redis, repeat, run, schematic, sidebar, sql, stop, tablist, title, toast, wait, waituntil, webget, webserver, while, yaml.\n\n` +
-        `Deferrable commands (can be dispatched to main thread without stalling the async script):\n` +
-        `actionbar(per_player), announce, compass, fakeequip, narrate(per_player), playeffect, playsound, runlater(id), showfake, sidebar(per_player).\n\n` +
-        `=== ASYNC TAG SAFETY MAP ===\n` +
-        `Object types where 100% of tags are safe off the main thread (pure data / immutable objects):\n` +
-        `BiomeTag, PluginTag, TradeTag, BinaryTag, ColorTag, CustomObjectTag, DurationTag, ElementTag, ImageTag, JavaReflectedObjectTag, ListTag, MapTag, QuaternionTag, QueueTag, ScriptTag, SecretTag, TimeTag.\n\n` +
-        `Object types safe with minor exceptions:\n` +
-        `- EnchantmentTag: safe except full_name, can_enchant\n` +
-        `- MaterialTag: safe except is_enabled\n\n` +
-        `Object types with specific async-safe sub-tags:\n` +
-        `- ChunkTag: add, cuboid, is_loaded, simple, sub, world, x, xz, z\n` +
-        `- CuboidTag: center, contains, contains_cuboid, contains_location, corners, flag, flag_expiration, flag_map, get_outline, has_flag, intersects, is_within, list_flags, max, min, outline, outline_2d, shell, shift, size, volume, walls, with_max, with_min\n` +
-        `- EllipsoidTag: add, bounding_box, chunks, contains, contains_location, flag, flag_expiration, flag_map, has_flag, include, is_within, list_flags, location, random, shell, size, with_location, with_size, world\n` +
-        `- EntityTag: entity_type, script, translated_name, type, uuid\n` +
-        `- InventoryTag: (none)\n` +
-        `- ItemTag: book_author, book_map, book_pages, book_title, display, durability, enchantment_map, enchantment_types, enchantments, flag, flag_expiration, flag_map, has_display, has_flag, has_lore, is_enchanted, list_flags, lore, material, max_stack, quantity, script, with_flag\n` +
-        `- LocationTag: above, add, backward, backward_flat, below, center, chunk, distance, distance_squared, div, down, format, formatted, forward, forward_flat, get_chunk, left, mul, normalize, pitch, points_around_x, points_around_y, points_around_z, points_between, quaternion_between_vectors, random_offset, raw, relative, right, rotate_around_x, rotate_around_y, rotate_around_z, rotate_pitch, rotate_yaw, round, round_down, round_to, round_to_precision, round_up, simple, simplex_3d, sub, to_axis_angle_quaternion, up, vector_length, vector_length_squared, vector_to_face, with_pitch, with_x, with_y, with_yaw, with_z, world, x, xyz, y, yaw, z\n` +
-        `- NPCTag: (none)\n` +
-        `- PlayerTag: ban_created, ban_created_time, ban_expiration, ban_expiration_time, ban_info, ban_reason, ban_source, chat_history, chat_history_list, disguise_to_self, fake_block, fake_block_locations, fake_entities, first_played, first_played_time, flag, flag_expiration, flag_map, has_flag, has_played_before, is_banned, is_online, is_op, is_player, is_whitelisted, last_played, last_played_time, list_flags, name, sidebar_lines, sidebar_scores, sidebar_title, uuid, whitelisted\n` +
-        `- PolygonTag: bounding_box, contains, contains_inclusive, contains_location, corners, flag, flag_expiration, flag_map, has_flag, include_y, is_within, list_flags, max_y, min_y, outline, outline_2d, shell, shell_inclusive, shift, with_corner, with_y_max, with_y_min, world\n` +
-        `- WorldTag: allows_animals, allows_monsters, allows_pvp, ambient_spawn_limit, animal_spawn_limit, auto_save, can_generate_structures, difficulty, duration_since_created, environment, hardcore, has_storm, is_day, is_night, keep_spawn, max_height, min_height, monster_spawn_limit, moon_phase, name, sea_level, seed, simulation_distance, sky_darkness, thunder_duration, thundering, ticks_per_animal_spawn, ticks_per_monster_spawn, time, time_duration, time_full, time_period, view_distance, water_animal_spawn_limit, weather_duration, world_type\n\n` +
-        `=== TAG BASES ===\n` +
-        `- mainThreadOnly: biome, chunk, cuboid, ellipsoid, enchantment, entity, inventory, item, plugin, polygon, trade, world, player, server, npc\n` +
-        `- bareSafe: player, npc (reading bare <player> hands back the queue's linked object with 0 hand-offs)\n` +
-        `- notMarked: location, material, and all core data types (list, map, element, time, duration, queue, script, secret, binary, color, customobject, image, javareflectedobject, quaternion)`,
+      description: describeAsyncSafetyMap(),
     };
   }
 
@@ -1126,7 +1110,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
 
       case 'Tag': {
         const tag = obj as MetaTagObject;
-        const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
+        const tagAsync = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
         html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(tag.tagFull)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(tag.tagFull)}</span></a>`, false);
         html += tableLine('default', 'Async Safety', `${tagAsync.badgeHtml} <span class="badge-async-desc">${escapeForHTML(tagAsync.descriptionText)}</span>`, false);
         const returnBase = tag.returns ? tag.returns.split('(')[0] : '';
@@ -1317,6 +1301,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
     allObjects: sortedAll,
     loadErrors,
     lastReload: new Date().toISOString(),
+    asyncSafety: asyncSafety || undefined,
   };
 }
 
@@ -1361,6 +1346,7 @@ export function serializeMetaDocs(docs: MetaDocsData): string {
     objectTypes: stripBuildOnlyFields(docs.objectTypes),
     loadErrors: docs.loadErrors,
     lastReload: docs.lastReload,
+    asyncSafety: docs.asyncSafety,
   });
 }
 
@@ -1389,6 +1375,8 @@ function normalizeLoadedObject<T extends BaseMetaObject>(obj: T): T {
  * between per-kind dictionaries and `allObjects`.
  */
 export function hydrateMetaDocs(raw: Partial<MetaDocsData>): MetaDocsData {
+  // Runtime filters / page titles call the async helpers, so they must see the markings this file was built with.
+  setAsyncSafetyData(raw.asyncSafety);
   const commands = raw.commands || {};
   const tags = raw.tags || {};
   const events = raw.events || {};
@@ -1437,5 +1425,6 @@ export function hydrateMetaDocs(raw: Partial<MetaDocsData>): MetaDocsData {
     allObjects: combined,
     loadErrors: raw.loadErrors || [],
     lastReload: raw.lastReload || '0',
+    asyncSafety: raw.asyncSafety,
   };
 }

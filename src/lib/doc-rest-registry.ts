@@ -1,3 +1,5 @@
+import { FEATURES_STYLE_RE_SRC, type HeightFeatures } from './card-height';
+
 /**
  * Client-side controller registry for demand-mounted `DocRestLoader` chunks.
  * Keeps large sections (e.g. 2,512 Tags / ~102k DOM nodes) lightweight on the main thread
@@ -8,6 +10,8 @@ export interface RestCardMeta {
   catId: string;
   asyncTokens: string[];
   plugin: string;
+  /** Height features (see card-height.ts), from the card's style attribute. */
+  f: HeightFeatures;
 }
 
 export interface RestChunkMeta {
@@ -15,6 +19,8 @@ export interface RestChunkMeta {
   html: string;
   cards: RestCardMeta[];
   headerCatIds: string[];
+  /** Sum of the cards' height features. */
+  sumF: HeightFeatures;
 }
 
 export interface DocRestController {
@@ -31,6 +37,9 @@ export interface DocRestController {
 }
 
 const CARD_END = '</table></div>';
+
+/** Features for cards without any (older markup): 340px of "text", matching the CSS default. */
+const FALLBACK_FEATURES: HeightFeatures = [0, 0, 0, 340];
 
 const decodeBasicAttr = (s: string): string =>
   s.includes('&')
@@ -73,13 +82,16 @@ export function parseRestChunks(
   const idToChunk = new Map<string, number>();
   let currentCatId = initialCatId;
 
-  const tokenRe =
-    /data-category-header="([^"]+)"|<div class="doc-card"(?: data-async="([^"]*)")? data-plugin="([^"]+)">|\bid="([^"]+)"/g;
+  const tokenRe = new RegExp(
+    String.raw`data-category-header="([^"]+)"|<div class="doc-card"(?: data-async="([^"]*)")? data-plugin="([^"]+)"(?: ${FEATURES_STYLE_RE_SRC})?[^>]*>|\bid="([^"]+)"`,
+    'g'
+  );
 
   for (let idx = 0; idx < rawChunks.length; idx++) {
     const chunkHtml = rawChunks[idx];
     const cards: RestCardMeta[] = [];
     const headerCatIds: string[] = [];
+    const sumF: HeightFeatures = [0, 0, 0, 0];
 
     tokenRe.lastIndex = 0;
     let m: RegExpExecArray | null;
@@ -89,13 +101,18 @@ export function parseRestChunks(
         headerCatIds.push(currentCatId);
       } else if (m[3] !== undefined) {
         const asyncRaw = m[2];
+        const f: HeightFeatures = m[4]
+          ? [Number(m[4]), Number(m[5]), Number(m[6]), Number(m[7])]
+          : FALLBACK_FEATURES;
+        for (let i = 0; i < 4; i++) sumF[i] += f[i];
         cards.push({
           catId: currentCatId,
           asyncTokens: asyncRaw ? asyncRaw.split(/\s+/).filter(Boolean) : [],
           plugin: m[3],
+          f,
         });
-      } else if (m[4] !== undefined) {
-        const idRaw = decodeBasicAttr(m[4]);
+      } else if (m[8] !== undefined) {
+        const idRaw = decodeBasicAttr(m[8]);
         idToChunk.set(idRaw, idx);
         try {
           const decoded = decodeURIComponent(idRaw);
@@ -113,6 +130,7 @@ export function parseRestChunks(
       html: chunkHtml,
       cards,
       headerCatIds,
+      sumF,
     });
   }
 
