@@ -1,3 +1,5 @@
+import type { AsyncSafetyData } from './async-safety-parser';
+
 export interface SearchableHelpers {
   perfectMatches: string[];
   synonyms: string[];
@@ -146,6 +148,8 @@ export interface MetaDocsData {
   allObjects: AnyMetaObject[];
   loadErrors: string[];
   lastReload: string;
+  /** Async-safety markings parsed from the Java sources at sync time. */
+  asyncSafety?: AsyncSafetyData;
 }
 
 export interface PluginFilterOption {

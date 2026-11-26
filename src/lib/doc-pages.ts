@@ -9,6 +9,7 @@ import {
 import { matchEventPattern } from './meta-data';
 import { expandInheritedQueries, normalizeScriptQuery } from './object-inheritance';
 import { cleanTag } from './util';
+import { FEATURES_STYLE_RE_SRC } from './card-height';
 import {
   DocViewModel,
   MetaDocsData,
@@ -31,7 +32,7 @@ const MAX_CACHE_ENTRIES = 120;
  * Bump whenever the generated HTML or the head/rest split changes, so browsers never combine a
  * freshly rendered head with a rest part cached (max-age) from the previous format.
  */
-const REST_FORMAT = '7';
+const REST_FORMAT = '9';
 
 const LIST_START = '<div class="doc-list">';
 const LIST_END = '</div>';
@@ -39,6 +40,33 @@ const LIST_END = '</div>';
 export interface SplitDocModel extends DocViewModel {
   headHtml: string;
   restHtml: string;
+  /** Summed height features ("r,c,p,x") of `restHtml`, see card-height.ts; reserved before the rest loads. */
+  restEstFeatures: string;
+  /** Fixed part of the rest's height: card gaps and category headers. */
+  restEstExtraPx: number;
+}
+
+const CARD_FEATURES_RE = new RegExp(`<div class="doc-card"[^>]* ${FEATURES_STYLE_RE_SRC}`, 'g');
+const CATEGORY_HEADER_TOKEN = 'class="category_header_block"';
+
+/** Mirrors DocRestLoader's chunk placeholder formula (card features + 16px gaps + 64px category headers). */
+function estimateRest(rest: string): { features: string; extraPx: number } {
+  const sum = [0, 0, 0, 0];
+  let extraPx = 0;
+  if (rest) {
+    CARD_FEATURES_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = CARD_FEATURES_RE.exec(rest)) !== null) {
+      for (let i = 0; i < 4; i++) sum[i] += Number(m[i + 1]);
+      extraPx += 16;
+    }
+    let at = rest.indexOf(CATEGORY_HEADER_TOKEN);
+    while (at !== -1) {
+      extraPx += 64;
+      at = rest.indexOf(CATEGORY_HEADER_TOKEN, at + CATEGORY_HEADER_TOKEN.length);
+    }
+  }
+  return { features: sum.join(','), extraPx };
 }
 
 // Cache is bound to the docs object identity, so a meta reload invalidates everything automatically.
@@ -206,7 +234,15 @@ export async function getDocModel(kind: DocKind, id: string | null): Promise<Spl
 
   const model = buildModel(docs, kind, id);
   const { head, rest } = splitContent(model.contentHtml);
-  const result: SplitDocModel = { ...model, contentHtml: '', headHtml: head, restHtml: rest };
+  const restEst = estimateRest(rest);
+  const result: SplitDocModel = {
+    ...model,
+    contentHtml: '',
+    headHtml: head,
+    restHtml: rest,
+    restEstFeatures: restEst.features,
+    restEstExtraPx: restEst.extraPx,
+  };
 
   modelCache.set(key, result);
   if (modelCache.size > MAX_CACHE_ENTRIES) {
@@ -313,7 +349,7 @@ export async function buildDocPageMetadata(
       tag = targets.map((t) => docs.tags[t]).find(Boolean);
     }
     if (tag) {
-      const asyncInfo = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned);
+      const asyncInfo = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
       const asyncLabel = asyncInfo.isSafe ? 'Async-Safe' : 'Main Thread';
       const ret = tag.returns ? ` → ${tag.returns}` : '';
       const title = `${tag.tagFull}${ret} (${asyncLabel}) | DenizenM Meta`;

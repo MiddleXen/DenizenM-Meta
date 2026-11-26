@@ -358,10 +358,40 @@ table.table:hover {
 /* Every doc entry is wrapped server-side in <div class="doc-card">. Chromium ignores
    content-visibility on display:table elements, so it lives on this block wrapper: off-screen
    cards skip style/layout/paint entirely (huge win on the Tags page, incl. theme switches).
-   overflow-clip-margin keeps the card's box-shadow from being clipped by the paint containment. */
+   overflow-clip-margin keeps the card's box-shadow from being clipped by the paint containment.
+   The placeholder size is predicted from the server's per-card height features (--r/--c/--p/--x)
+   and the client-fitted coefficients (--kr/--kc/--kp/--kx), see src/lib/card-height.ts, so the page
+   height and the scrollbar thumb barely change as cards render. */
+#doc-entries-root {
+  /* Height-model coefficients before JS refines them (fitted at 1440 / 820 / 390px wide, see card-height.ts). */
+  --kr: 0.81;
+  --kc: 1;
+  --kp: 0.88;
+  --kx: 0.94;
+}
+
+@media (max-width: 1100px) {
+  #doc-entries-root {
+    --kr: 0.78;
+    --kp: 0.72;
+    --kx: 2.33;
+  }
+}
+
+@media (max-width: 640px) {
+  #doc-entries-root {
+    --kr: 1.7;
+    --kp: 0.65;
+    --kx: 3.83;
+  }
+}
+
 .doc-card {
   content-visibility: auto;
-  contain-intrinsic-size: auto 340px;
+  contain-intrinsic-size: auto
+    calc(
+      (var(--r, 0) * var(--kr, 1) + var(--c, 0) * var(--kc, 1) + var(--p, 0) * var(--kp, 0.5) + var(--x, 340) * var(--kx, 1)) * 1px
+    );
   margin: 16px 0;
   overflow-clip-margin: 24px;
 }

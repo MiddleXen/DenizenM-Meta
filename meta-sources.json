@@ -1,0 +1,9 @@
+{
+  "$comment": "Source zips the meta is built from. Read by src/lib/meta-loader.ts and by .github/workflows/sync.yml (scripts/check-sources.mjs), which redeploys the site whenever one of these branches gets a new commit.",
+  "sources": [
+    "https://github.com/Energobro/DenizenM-Tjtoxshpilivili1/archive/master.zip",
+    "https://github.com/Energobro/DenizenM-Core/archive/main.zip",
+    "https://github.com/DenizenScript/Depenizen/archive/master.zip",
+    "https://github.com/DenizenScript/dDiscordBot/archive/master.zip"
+  ]
+}
