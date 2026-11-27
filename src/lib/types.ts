@@ -21,7 +21,7 @@ export type MetaType =
   | 'Data'
   | 'GuidePage';
 
-export type AsyncFilterKind = 'safe' | 'defer' | 'main';
+export type AsyncFilterKind = 'safe' | 'defer' | 'main' | 'unverified';
 
 export interface BaseMetaObject {
   type: MetaType;
@@ -164,6 +164,8 @@ export interface AsyncFilterCounts {
   safe: number;
   defer: number;
   main: number;
+  /** Addon entries DenizenM runs off-thread without anyone declaring them safe. */
+  unverified: number;
 }
 
 export interface DocViewModel {

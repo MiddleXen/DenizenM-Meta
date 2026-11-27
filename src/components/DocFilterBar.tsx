@@ -318,7 +318,7 @@ export function DocFilterBar({
   }, [activeCategories, catQuery]);
 
   const hasFilterControls =
-    (asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0)) ||
+    (asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0 || asyncCounts.unverified > 0)) ||
     (pluginOptions && pluginOptions.length > 1);
 
   const isFiltering = Boolean(asyncFilter || pluginFilter);
@@ -370,7 +370,7 @@ export function DocFilterBar({
         {/* Instant 0ms Async & Source Filter Chips */}
         {hasFilterControls && (
           <div className="flex flex-col items-center gap-2 max-w-4xl w-full">
-            {asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0) && (
+            {asyncCounts && (asyncCounts.safe > 0 || asyncCounts.defer > 0 || asyncCounts.unverified > 0) && (
               <div className="inline-flex flex-wrap items-center justify-center gap-1 p-1 rounded-xl bg-[var(--card-bg)] border border-[var(--table-border)] shadow-2xs max-w-full">
                 <button
                   type="button"
@@ -424,6 +424,21 @@ export function DocFilterBar({
                   >
                     <span>Main Thread</span>
                     <span className="opacity-65 font-mono text-[10px]">{asyncCounts.main}</span>
+                  </button>
+                )}
+                {asyncCounts.unverified > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAsyncFilter(asyncFilter === 'unverified' ? '' : 'unverified')}
+                    title="Addon entries DenizenM runs on the async thread, though the addon never declared them safe"
+                    className={`inline-flex items-center gap-1 px-3 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-xs sm:text-[11px] font-semibold leading-none border transition-colors cursor-pointer ${
+                      asyncFilter === 'unverified'
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40'
+                        : 'text-[var(--text-muted)] hover:text-amber-600 dark:hover:text-amber-300 border-transparent'
+                    }`}
+                  >
+                    <span>Unverified</span>
+                    <span className="opacity-65 font-mono text-[10px]">{asyncCounts.unverified}</span>
                   </button>
                 )}
               </div>

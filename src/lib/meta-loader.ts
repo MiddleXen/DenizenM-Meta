@@ -549,7 +549,7 @@ export function buildSearchables(obj: BaseMetaObject): SearchableHelpers {
     if (ot.prefix) strongs.push(ot.prefix);
     if (ot.description) decents.push(ot.description);
     if (ot.format) backups.push(ot.format);
-    const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
+    const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName, ot.sourceFile);
     if (otAsync.isFullSafe || otAsync.isPartial) {
       if (!synonyms.includes('async')) synonyms.push('async');
       if (!synonyms.includes('async-safe')) synonyms.push('async-safe');
@@ -1225,7 +1225,7 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
 
       case 'ObjectType': {
         const ot = obj as MetaObjectTypeObject;
-        const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
+        const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName, ot.sourceFile);
         const linkObjType = (targetName: string) => `<a href="/Docs/ObjectTypes/${encodeURIComponent(targetName.toLowerCase())}">${escapeForHTML(targetName)}</a>`;
         html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr(ot.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(ot.name)}</span></a>`, false);
         html += tableLine('default', 'Async Support', `${otAsync.badgeHtml} <span class="badge-async-desc">${escapeForHTML(otAsync.descriptionText)}</span>`, false);

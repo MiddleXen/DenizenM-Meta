@@ -181,8 +181,12 @@ export function sortMetaObjects<T extends BaseMetaObject>(list: T[]): T[] {
   });
 }
 
-export function getPluginBucket(pluginRaw?: string): { slug: string; label: string } {
+export function getPluginBucket(pluginRaw?: string, sourceFile?: string): { slug: string; label: string } {
   if (!pluginRaw || !pluginRaw.trim()) {
+    // Some addon entries leave out `@plugin`; the repository they come from still tells where they belong.
+    const src = (sourceFile || '').toLowerCase();
+    if (src.includes('github.com/denizenscript/depenizen/')) return { slug: 'depenizen', label: 'Depenizen' };
+    if (src.includes('github.com/denizenscript/ddiscordbot/')) return { slug: 'ddiscordbot', label: 'dDiscordBot' };
     return { slug: 'core', label: 'Core' };
   }
   const low = pluginRaw.toLowerCase();
@@ -204,13 +208,14 @@ export function getAsyncTokens(obj: AnyMetaObject): string | null {
   if (obj.type === 'Tag') {
     const tag = obj as MetaTagObject;
     const info = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
-    return info.isSafe ? 'safe' : 'main';
+    return info.status;
   }
   if (obj.type === 'ObjectType') {
     const ot = obj as MetaObjectTypeObject;
-    const info = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
+    const info = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName, ot.sourceFile);
     if (info.isFullSafe) return 'safe';
     if (info.isPartial) return 'defer';
+    if (info.isUnverified) return 'unverified';
     return 'main';
   }
   return null;
@@ -259,7 +264,7 @@ function enhanceDocCardHtml(rawHtml: string): string {
 const cardFeaturesCache = new WeakMap<AnyMetaObject, HeightFeatures>();
 
 export function wrapDocCard(obj: AnyMetaObject): string {
-  const plugin = getPluginBucket(obj.plugin);
+  const plugin = getPluginBucket(obj.plugin, obj.sourceFile);
   const asyncTokens = getAsyncTokens(obj);
   let enhanced = enhancedCardCache.get(obj);
   if (enhanced === undefined) {
@@ -281,7 +286,7 @@ function summarizeFilters(items: AnyMetaObject[]): {
   pluginOptions?: PluginFilterOption[];
 } {
   let hasAsync = false;
-  const asyncCounts: AsyncFilterCounts = { safe: 0, defer: 0, main: 0 };
+  const asyncCounts: AsyncFilterCounts = { safe: 0, defer: 0, main: 0, unverified: 0 };
   const pluginMap = new Map<string, PluginFilterOption>();
 
   for (const obj of items) {
@@ -291,8 +296,9 @@ function summarizeFilters(items: AnyMetaObject[]): {
       if (tokens.includes('safe')) asyncCounts.safe++;
       if (tokens.includes('defer')) asyncCounts.defer++;
       if (tokens === 'main') asyncCounts.main++;
+      if (tokens === 'unverified') asyncCounts.unverified++;
     }
-    const bucket = getPluginBucket(obj.plugin);
+    const bucket = getPluginBucket(obj.plugin, obj.sourceFile);
     let entry = pluginMap.get(bucket.slug);
     if (!entry) {
       entry = { slug: bucket.slug, label: bucket.label, count: 0 };

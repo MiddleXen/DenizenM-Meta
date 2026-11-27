@@ -7,6 +7,9 @@
  *    `setAsyncDeferrable(true)`, plus `isAsyncSafe(ScriptEntry)` / `isAsyncDeferrable(ScriptEntry)` overrides (conditional).
  *  - The machine-readable map comments (`// @asyncsave`, `// @asyncbase`, `// @asynccmd`) in CommonRegistries.java.
  *  - `TagManager.markMainThreadOnly("<base>", ...)` calls, for the safe sub-tags of main-thread-only tag bases (eg `<server.x>`).
+ *  - `TagManager.markObjectTypeMainThreadOnly(XTag.class, ...)` / `markObjectTypeTagsMainThreadOnly(XTag.class, "a", ...)` calls:
+ *    which object types (or single tags of an otherwise pure-data type) DenizenM hands to the main thread. Anything not
+ *    marked anywhere runs directly on the async thread - which matters for addon types, since no addon marks anything.
  */
 
 export interface AsyncCommandMarking {
@@ -32,6 +35,10 @@ export interface AsyncSafetyData {
   baseSafeSubTags: Record<string, string[]>;
   /** `owner/repo` of the sources that know about async safety; tags from other sources are judged conservatively. */
   awareRepos: string[];
+  /** Lowercased object types DenizenM hands to the main thread (`markObjectTypeMainThreadOnly`), safe sub-tags aside. */
+  mainThreadTypes?: string[];
+  /** Lowercased pure-data object type -> the few tags on it that still go to the main thread (`markObjectTypeTagsMainThreadOnly`). */
+  typeMainThreadTags?: Record<string, string[]>;
 }
 
 const NAME_TOKEN_RE = /^[a-z0-9_\-&]+(?:\(([a-z0-9_]+)\))?$/i;
@@ -46,6 +53,8 @@ export class AsyncSafetyCollector {
   private bareBases = new Set<string>();
   private baseSub = new Map<string, Set<string>>();
   private awareRepos = new Set<string>();
+  private mainTypes = new Set<string>();
+  private typeTags = new Map<string, Set<string>>();
   private foundAny = false;
 
   /** Feed one Java file. Cheap for files with no markings (a few `includes` checks). */
@@ -57,7 +66,7 @@ export class AsyncSafetyCollector {
     if (content.includes('// @async')) {
       if (this.visitMapComments(content)) aware = true;
     }
-    if (content.includes('markMainThreadOnly(')) {
+    if (content.includes('MainThreadOnly(')) {
       if (this.visitBaseMarkings(content)) aware = true;
     }
     if (aware) {
@@ -158,6 +167,25 @@ export class AsyncSafetyCollector {
       used = true;
     }
 
+    // TagManager.markObjectTypeMainThreadOnly(EntityTag.class, ENTITY_ASYNC_SAFE_TAGS) - the safe sub-tags come from the
+    // `@asyncsave` map comments; only the type itself is needed here.
+    const typeRe = /TagManager\.markObjectTypeMainThreadOnly\(\s*(\w+)\.class\b/g;
+    while ((m = typeRe.exec(stripped)) !== null) {
+      this.mainTypes.add(m[1].toLowerCase());
+      used = true;
+    }
+
+    // TagManager.markObjectTypeTagsMainThreadOnly(MaterialTag.class, "is_enabled")
+    const typeTagsRe = /TagManager\.markObjectTypeTagsMainThreadOnly\(\s*(\w+)\.class\s*(,|\))/g;
+    while ((m = typeTagsRe.exec(stripped)) !== null) {
+      const type = m[1].toLowerCase();
+      const tags = m[2] === ',' ? evalArgs(stripped, m.index + m[0].length, constants) : [];
+      const set = this.typeTags.get(type) || new Set<string>();
+      for (const t of tags) set.add(t.toLowerCase());
+      this.typeTags.set(type, set);
+      used = true;
+    }
+
     const bareRe = /TagManager\.markBareBaseAsyncSafe\(\s*"([^"]+)"\s*\)/g;
     while ((m = bareRe.exec(stripped)) !== null) {
       this.bareBases.add(m[1].toLowerCase());
@@ -207,6 +235,8 @@ export class AsyncSafetyCollector {
       bareSafeBases: [...this.bareBases].sort(),
       baseSafeSubTags: sortedRecord(this.baseSub),
       awareRepos: [...this.awareRepos].sort(),
+      mainThreadTypes: [...this.mainTypes].sort(),
+      typeMainThreadTags: sortedRecord(this.typeTags),
     };
   }
 }

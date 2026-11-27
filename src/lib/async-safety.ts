@@ -50,6 +50,11 @@ export const FALLBACK_ASYNC_SAFETY: AsyncSafetyData = {
     ['biome', 'entity', 'inventory', 'item', 'plugin', 'world', 'server', 'player'].map((b) => [b, FLAG_TAGS])
   ),
   awareRepos: ['energobro/denizenm-core', 'energobro/denizenm-tjtoxshpilivili1'],
+  mainThreadTypes: [
+    'chunktag', 'cuboidtag', 'ellipsoidtag', 'entitytag', 'inventorytag', 'itemtag', 'locationtag', 'npctag', 'playertag',
+    'polygontag', 'worldtag',
+  ],
+  typeMainThreadTags: { enchantmenttag: ['can_enchant', 'full_name'], materialtag: ['is_enabled'] },
 };
 
 // Script-memory bases and constructor aliases that are not object types but are always safe (they read the queue's own data).
@@ -70,6 +75,8 @@ interface ActiveState {
   bareBases: Set<string>;
   baseSub: Map<string, Set<string>>;
   awareRepos: string[];
+  mainTypes: Set<string>;
+  typeTags: Map<string, Set<string>>;
 }
 
 function buildState(data: AsyncSafetyData): ActiveState {
@@ -83,6 +90,9 @@ function buildState(data: AsyncSafetyData): ActiveState {
     bareBases: new Set((data.bareSafeBases || []).map((s) => s.toLowerCase())),
     baseSub: toMap(data.baseSafeSubTags),
     awareRepos: (data.awareRepos || []).map((s) => s.toLowerCase()),
+    // Meta synced before these were parsed has no such fields: fall back to the snapshot rather than to "nothing marked".
+    mainTypes: new Set((data.mainThreadTypes || FALLBACK_ASYNC_SAFETY.mainThreadTypes || []).map((s) => s.toLowerCase())),
+    typeTags: toMap(data.typeMainThreadTags || FALLBACK_ASYNC_SAFETY.typeMainThreadTags || {}),
   };
 }
 
@@ -130,6 +140,10 @@ function makeDeferBadge(text: string): string {
 
 function makeMainBadge(text: string): string {
   return `<span class="badge-async-main">${text}</span>`;
+}
+
+function makeUnverifiedBadge(text: string): string {
+  return `<span class="badge-async-unverified">${text}</span>`;
 }
 
 function describeDeferQualifier(qualifier?: string): string {
@@ -187,23 +201,48 @@ export function getCommandAsyncStatus(commandName: string): CommandAsyncInfo {
   };
 }
 
+/**
+ * - safe: DenizenM declares it safe off the main thread.
+ * - main: DenizenM hands it to the main thread when an async queue reads it.
+ * - unverified: from an addon that marks nothing, so DenizenM runs it in place on the async thread, but nobody has
+ *   declared that this is safe (it may read live plugin / world state).
+ */
+export type AsyncStatus = 'safe' | 'main' | 'unverified';
+
 export interface TagAsyncInfo {
+  status: AsyncStatus;
   isSafe: boolean;
   badgeHtml: string;
   descriptionText: string;
 }
 
 const SAFE = (descriptionText: string): TagAsyncInfo => ({
+  status: 'safe',
   isSafe: true,
   badgeHtml: makeSafeBadge('Async-Safe'),
   descriptionText,
 });
 
 const MAIN = (descriptionText: string): TagAsyncInfo => ({
+  status: 'main',
   isSafe: false,
   badgeHtml: makeMainBadge('Main Thread Hand-Off'),
   descriptionText,
 });
+
+const UNVERIFIED_BADGE = 'Off-Thread · Unverified';
+
+const UNVERIFIED = (descriptionText: string): TagAsyncInfo => ({
+  status: 'unverified',
+  isSafe: false,
+  badgeHtml: makeUnverifiedBadge(UNVERIFIED_BADGE),
+  descriptionText,
+});
+
+const UNVERIFIED_TAG = UNVERIFIED(
+  `The addon marks nothing about threads, so DenizenM runs this directly on the async queue's thread, with no main-thread hand-off. ` +
+    `Fine for plain data; if it reads live plugin or world state it can race the main thread - read it into a definition before the async part if that matters.`
+);
 
 const MAIN_DEFAULT = MAIN(
   `Reads live server state; automatically evaluated on the main thread when called from an async queue.`
@@ -236,24 +275,32 @@ export function getTagAsyncStatus(
       }
       return MAIN(`Reads live server state; automatically dispatched to the main thread when evaluated from an async queue.`);
     }
+    // An addon's constructor (eg <mythicmob[...]>, <town[...]>) usually looks the object up in the plugin's own data.
+    if (!aware) return UNVERIFIED_TAG;
     return SAFE(`Pure data constructor / static format: evaluates directly on the async worker thread (0ms latency, no main-thread hand-off).`);
   }
 
   // 1. Object types (eg <ElementTag.x>, <PlayerTag.name>). Type markings apply to every tag on the type,
   //    including extension tags an addon registers onto it.
   if (beforeDot.endsWith('tag')) {
-    if (st.safeAll.has(beforeDot)) {
-      return SAFE(`Pure data processing: evaluates directly on the async script's worker thread (0ms latency, no main-thread hand-off).`);
+    if (st.typeTags.get(beforeDot)?.has(firstAttr)) {
+      return MAIN(`Fetches live server state although the type itself is plain data: handed to the main thread when called from an async queue.`);
     }
     const sub = st.safeSub.get(beforeDot);
-    if (sub && sub.has(firstAttr)) {
-      return SAFE(`Memory / cached field: safe off the main thread (0ms latency, thread-safe access).`);
+    if (st.mainTypes.has(beforeDot) || (sub && !st.safeAll.has(beforeDot))) {
+      if (sub && sub.has(firstAttr)) {
+        return SAFE(`Memory / cached field: safe off the main thread (0ms latency, thread-safe access).`);
+      }
+      return MAIN_DEFAULT;
     }
-    return MAIN_DEFAULT;
+    if (st.safeAll.has(beforeDot)) {
+      // An addon's extension tag on a pure-data type still runs in place, but the addon never said it only reads that data.
+      if (!aware) return UNVERIFIED_TAG;
+      return SAFE(`Pure data processing: evaluates directly on the async script's worker thread (0ms latency, no main-thread hand-off).`);
+    }
+    // A type DenizenM does not mark at all: an addon's own type (DiscordUserTag, MythicMobsMobTag, TownTag, ...).
+    return aware ? MAIN_DEFAULT : UNVERIFIED_TAG;
   }
-
-  // Addon tag bases (Depenizen, dDiscordBot, ...) declare nothing about async; stay conservative.
-  if (!aware) return MAIN_DEFAULT;
 
   if (QUEUE_MEMORY_BASES.has(beforeDot)) {
     return SAFE(`Reads the queue's own data: evaluates directly on the async worker thread.`);
@@ -272,6 +319,9 @@ export function getTagAsyncStatus(
     return MAIN_DEFAULT;
   }
 
+  // Addon tag bases (<mythicmobs.x>, <luckperms.x>, ...): DenizenM only hands over bases that are marked, and no addon marks any.
+  if (!aware) return UNVERIFIED_TAG;
+
   // Interface-like pseudo types (AreaObject, ObjectTag, VectorObject, ...) depend on the real object; stay conservative.
   if (/[A-Z]/.test(beforeDotRaw)) {
     return MAIN_DEFAULT;
@@ -281,9 +331,10 @@ export function getTagAsyncStatus(
   return SAFE(`Tag base is not marked main-thread-only: runs directly on the async script's thread.`);
 }
 
-export function getObjectTypeAsyncStatus(cleanTypeName: string): {
+export function getObjectTypeAsyncStatus(cleanTypeName: string, sourceFile?: string): {
   isFullSafe: boolean;
   isPartial: boolean;
+  isUnverified: boolean;
   safeCount: number;
   badgeHtml: string;
   descriptionText: string;
@@ -296,6 +347,7 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
     return {
       isFullSafe: true,
       isPartial: false,
+      isUnverified: false,
       safeCount: 999,
       badgeHtml: makeSafeBadge('Fully Async-Safe'),
       descriptionText: `Every tag on this object type is completely safe off the main thread. Pure data processing.`,
@@ -308,15 +360,28 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string): {
     return {
       isFullSafe: false,
       isPartial: true,
+      isUnverified: false,
       safeCount: set.size,
       badgeHtml: makeDeferBadge(`Partial Async-Safe (${set.size} tags)`),
       descriptionText: `${set.size} sub-tags are safe off the main thread (${[...set].slice(0, 6).join(', ')}${set.size > 6 ? ', …' : ''}). Live server reads hand off.`,
     };
   }
 
+  if (!st.mainTypes.has(clean) && !isAwareSource(sourceFile)) {
+    return {
+      isFullSafe: false,
+      isPartial: false,
+      isUnverified: true,
+      safeCount: 0,
+      badgeHtml: makeUnverifiedBadge(UNVERIFIED_BADGE),
+      descriptionText: `Not marked by DenizenM, so its tags run directly on the async queue's thread with no main-thread hand-off. The addon does not declare whether that is safe.`,
+    };
+  }
+
   return {
     isFullSafe: false,
     isPartial: false,
+    isUnverified: false,
     safeCount: 0,
     badgeHtml: makeMainBadge('Main Thread Only'),
     descriptionText: `Object wraps live Minecraft / Bukkit entities or state. Tags require main thread execution.`,
@@ -348,10 +413,20 @@ export function describeAsyncSafetyMap(): string {
     `${d.safeAllTypes.map(typeName).join(', ')}.\n\n` +
     `Object types with specific async-safe sub-tags (anything not listed is handed to the main thread):\n` +
     partial.map(([t, list]) => `- ${typeName(t)}: ${list.length ? list.join(', ') : '(none)'}`).join('\n') +
+    (Object.keys(d.typeMainThreadTags || {}).length
+      ? `\n\nPure-data object types with a few tags that still go to the main thread:\n` +
+        Object.entries(d.typeMainThreadTags || {})
+          .map(([t, list]) => `- ${typeName(t)}: ${list.join(', ')}`)
+          .join('\n')
+      : '') +
     `\n\n=== TAG BASES ===\n` +
     `- mainThreadOnly: ${d.mainThreadBases.join(', ')}\n` +
     `- bareSafe: ${d.bareSafeBases.join(', ')} (reading the bare base hands back the queue's linked object with 0 hand-offs)\n` +
     baseSub.map(([b, list]) => `- <${b}.*> safe sub-tags: ${list.join(', ')}`).join('\n') +
-    `\n- Every other tag base is not marked, and runs directly on the async script's own thread.`
+    `\n- Every other tag base is not marked, and runs directly on the async script's own thread.\n\n` +
+    `=== ADDONS ===\n` +
+    `Addons (Depenizen, dDiscordBot, ...) mark nothing, so their tag bases, their own object types and their extension tags on ` +
+    `pure-data types run directly on the async thread. These are shown as "${UNVERIFIED_BADGE}": nobody has declared them safe.\n` +
+    `Their extension tags on main-thread-only types (eg <EntityTag.mythicmob>) are still handed to the main thread as usual.`
   );
 }

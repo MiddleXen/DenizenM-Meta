@@ -146,7 +146,7 @@ export function buildSuggestionsFromDocs(docs: MetaDocsData): SearchSuggestion[]
       }
     } else if (obj.type === 'ObjectType') {
       const ot = obj as MetaObjectTypeObject;
-      const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
+      const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName, ot.sourceFile);
       if (otAsync.isFullSafe || otAsync.isPartial) {
         if (!keywords.includes('async')) keywords.push('async');
       }

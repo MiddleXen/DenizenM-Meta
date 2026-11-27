@@ -69,7 +69,7 @@ function describe(obj: AnyMetaObject, origin: string, quality: number) {
     url: origin + href,
     match: SEARCH_QUALITY_NAMES[quality] || 'Matched',
     quality,
-    plugin: getPluginBucket(obj.plugin).label,
+    plugin: getPluginBucket(obj.plugin, obj.sourceFile).label,
     group: obj.group || undefined,
     asyncSafety: getAsyncTokens(obj)?.split(' ') ?? null,
     deprecated: obj.deprecated || undefined,

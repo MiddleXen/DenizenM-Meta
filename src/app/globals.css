@@ -410,6 +410,7 @@ table.table:hover {
 #doc-entries-root[data-filter-async="safe"] .doc-card:not([data-async~="safe"]),
 #doc-entries-root[data-filter-async="defer"] .doc-card:not([data-async~="defer"]),
 #doc-entries-root[data-filter-async="main"] .doc-card:not([data-async~="main"]),
+#doc-entries-root[data-filter-async="unverified"] .doc-card:not([data-async~="unverified"]),
 #doc-entries-root[data-filter-plugin="core"] .doc-card:not([data-plugin="core"]),
 #doc-entries-root[data-filter-plugin="depenizen"] .doc-card:not([data-plugin="depenizen"]),
 #doc-entries-root[data-filter-plugin="ddiscordbot"] .doc-card:not([data-plugin="ddiscordbot"]),
@@ -476,7 +477,8 @@ table td a[href^="/Docs/ObjectTypes/"]:hover {
 /* Async safety badges */
 .badge-async-safe,
 .badge-async-defer,
-.badge-async-main {
+.badge-async-main,
+.badge-async-unverified {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -516,6 +518,17 @@ table td a[href^="/Docs/ObjectTypes/"]:hover {
   background-color: var(--code-bg);
   border: 1px solid var(--table-border);
   color: var(--text-muted);
+}
+
+/* Addon entries DenizenM runs off-thread although nobody declared them safe. */
+.badge-async-unverified {
+  background-color: rgba(245, 158, 11, 0.13);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: #b45309;
+}
+
+.dark .badge-async-unverified {
+  color: #fbbf24;
 }
 
 .badge-async-desc {
@@ -1518,6 +1531,7 @@ table td .pre-wrap > pre,
   .badge-async-safe,
   .badge-async-defer,
   .badge-async-main,
+  .badge-async-unverified,
   table td > .meta_link_badge:first-child,
   table td > span > .meta_link_badge:first-child {
     margin-left: 0 !important;

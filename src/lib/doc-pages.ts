@@ -357,7 +357,7 @@ export async function buildDocPageMetadata(
     }
     if (tag) {
       const asyncInfo = getTagAsyncStatus(tag.cleanedName || tag.cleanName, tag.beforeDot, tag.afterDotCleaned, tag.sourceFile);
-      const asyncLabel = asyncInfo.isSafe ? 'Async-Safe' : 'Main Thread';
+      const asyncLabel = asyncInfo.status === 'safe' ? 'Async-Safe' : asyncInfo.status === 'unverified' ? 'Off-Thread, Unverified' : 'Main Thread';
       const ret = tag.returns ? ` → ${tag.returns}` : '';
       const title = `${tag.tagFull}${ret} (${asyncLabel}) | DenizenM Meta`;
       const desc = cleanPlainSummary(tag.description);
@@ -388,11 +388,13 @@ export async function buildDocPageMetadata(
   } else if (kind === 'ObjectTypes') {
     const ot = docs.objectTypes[clean] || docs.objectTypes[clean + 'tag'];
     if (ot) {
-      const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName);
+      const otAsync = getObjectTypeAsyncStatus(ot.typeName || ot.cleanName, ot.sourceFile);
       const asyncLabel = otAsync.isFullSafe
         ? 'Fully Async-Safe'
         : otAsync.isPartial
         ? `Partial Async-Safe`
+        : otAsync.isUnverified
+        ? 'Off-Thread, Unverified'
         : 'Main Thread Only';
       const prefixLabel = ot.prefix && ot.prefix !== 'none' ? ` (${ot.prefix}@)` : '';
       const title = `${ot.name}${prefixLabel} • ObjectType (${asyncLabel}) | DenizenM Meta`;
