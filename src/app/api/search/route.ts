@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAsyncTokens, getMetaDocs, getPluginBucket, searchAllObjects, SEARCH_QUALITY_NAMES } from '@/lib/meta-store';
 import { cleanPlainSummary } from '@/lib/doc-pages';
 import { hrefForSuggestion, type SuggestionType } from '@/lib/suggestions';
+import { fixKeyboardLayout } from '@/lib/keyboard-layout';
 import type {
   AnyMetaObject,
   MetaCommandObject,
@@ -109,7 +110,7 @@ function describe(obj: AnyMetaObject, origin: string, quality: number) {
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const params = req.nextUrl.searchParams;
-  const q = (params.get('q') || '').trim();
+  const q = fixKeyboardLayout((params.get('q') || '').trim());
 
   if (!q) {
     return NextResponse.json(usage(origin, 'Missing ?q= parameter.'), { status: 400, headers: CORS_HEADERS });

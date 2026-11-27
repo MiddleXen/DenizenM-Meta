@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Zap, Layers, ListFilter, X, Search } from 'lucide-react';
 import type { AsyncFilterCounts, PluginFilterOption } from '@/lib/types';
+import { fixInputLayout } from '@/lib/keyboard-layout';
 import { doFlashFor } from '@/lib/flasher';
 import { getDocRestController, restCardMatches } from '@/lib/doc-rest-registry';
 
@@ -495,7 +496,7 @@ export function DocFilterBar({
                   ref={catInputRef}
                   type="text"
                   value={catQuery}
-                  onChange={(e) => setCatQuery(e.target.value)}
+                  onChange={(e) => setCatQuery(fixInputLayout(e.target))}
                   placeholder={`Jump to category (${activeCategories.length})...`}
                   className="w-full bg-transparent text-base sm:text-xs text-[var(--text-page)] placeholder-[var(--text-muted)] focus:outline-none py-0.5"
                 />

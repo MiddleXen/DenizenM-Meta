@@ -54,9 +54,9 @@ export default async function HomePage() {
       count: Object.keys(docs.commands).length,
       icon: Terminal,
       color: 'emerald',
-      iconBoxStyle: 'bg-emerald-500/10 text-emerald-500 dark:text-[#00bc8c] border-emerald-500/25',
-      badgeStyle: 'text-emerald-600 dark:text-[#00bc8c] bg-emerald-500/10 border-emerald-500/20',
-      hoverBorder: 'hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(0,188,140,0.12)]',
+      iconBoxStyle: 'bg-emerald-500/10 text-emerald-500 dark:text-[#00bc8c] group-hover:bg-emerald-500/[0.16]',
+      badgeStyle: 'text-emerald-600 dark:text-[#00bc8c] bg-emerald-500/10',
+      hoverBorder: 'hover:border-emerald-500/35 hover:shadow-[0_12px_32px_-14px_rgba(0,188,140,0.38)] focus-visible:border-emerald-500/60',
       hoverText: 'group-hover:text-emerald-500 dark:group-hover:text-[#00bc8c]',
       description: 'Executable actions in scripts. Prefixed with a dash (-) to execute gameplay logic, manipulate entities, and control flow.',
     },
@@ -67,9 +67,9 @@ export default async function HomePage() {
       count: Object.keys(docs.tags).length,
       icon: Code2,
       color: 'sky',
-      iconBoxStyle: 'bg-sky-500/10 text-sky-500 dark:text-sky-400 border-sky-500/25',
-      badgeStyle: 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/20',
-      hoverBorder: 'hover:border-sky-500/50 hover:shadow-[0_8px_30px_rgba(14,165,233,0.12)]',
+      iconBoxStyle: 'bg-sky-500/10 text-sky-500 dark:text-sky-400 group-hover:bg-sky-500/[0.16]',
+      badgeStyle: 'text-sky-600 dark:text-sky-400 bg-sky-500/10',
+      hoverBorder: 'hover:border-sky-500/35 hover:shadow-[0_12px_32px_-14px_rgba(14,165,233,0.38)] focus-visible:border-sky-500/60',
       hoverText: 'group-hover:text-sky-500 dark:group-hover:text-sky-400',
       description: 'Dynamic expressions wrapped in < > used to read object properties, compute math, and inspect game state in real time.',
     },
@@ -80,9 +80,9 @@ export default async function HomePage() {
       count: Object.keys(docs.objectTypes).length,
       icon: Boxes,
       color: 'violet',
-      iconBoxStyle: 'bg-violet-500/10 text-violet-500 dark:text-violet-400 border-violet-500/25',
-      badgeStyle: 'text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/20',
-      hoverBorder: 'hover:border-violet-500/50 hover:shadow-[0_8px_30px_rgba(139,92,246,0.12)]',
+      iconBoxStyle: 'bg-violet-500/10 text-violet-500 dark:text-violet-400 group-hover:bg-violet-500/[0.16]',
+      badgeStyle: 'text-violet-600 dark:text-violet-400 bg-violet-500/10',
+      hoverBorder: 'hover:border-violet-500/35 hover:shadow-[0_12px_32px_-14px_rgba(139,92,246,0.38)] focus-visible:border-violet-500/60',
       hoverText: 'group-hover:text-violet-500 dark:group-hover:text-violet-400',
       description: 'Core data representations including PlayerTag, LocationTag, ItemTag, EntityTag, and WorldTag structures.',
     },
@@ -93,9 +93,9 @@ export default async function HomePage() {
       count: Object.keys(docs.mechanisms).length,
       icon: Sliders,
       color: 'amber',
-      iconBoxStyle: 'bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/25',
-      badgeStyle: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
-      hoverBorder: 'hover:border-amber-500/50 hover:shadow-[0_8px_30px_rgba(245,158,11,0.12)]',
+      iconBoxStyle: 'bg-amber-500/10 text-amber-500 dark:text-amber-400 group-hover:bg-amber-500/[0.16]',
+      badgeStyle: 'text-amber-600 dark:text-amber-400 bg-amber-500/10',
+      hoverBorder: 'hover:border-amber-500/35 hover:shadow-[0_12px_32px_-14px_rgba(245,158,11,0.38)] focus-visible:border-amber-500/60',
       hoverText: 'group-hover:text-amber-500 dark:group-hover:text-amber-400',
       description: 'Setters and modifiers used with adjust or inventory mechanisms to modify attributes and game objects.',
     },
@@ -106,9 +106,9 @@ export default async function HomePage() {
       count: Object.keys(docs.events).length,
       icon: Zap,
       color: 'rose',
-      iconBoxStyle: 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/25',
-      badgeStyle: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20',
-      hoverBorder: 'hover:border-rose-500/50 hover:shadow-[0_8px_30px_rgba(244,63,94,0.12)]',
+      iconBoxStyle: 'bg-rose-500/10 text-rose-500 dark:text-rose-400 group-hover:bg-rose-500/[0.16]',
+      badgeStyle: 'text-rose-600 dark:text-rose-400 bg-rose-500/10',
+      hoverBorder: 'hover:border-rose-500/35 hover:shadow-[0_12px_32px_-14px_rgba(244,63,94,0.38)] focus-visible:border-rose-500/60',
       hoverText: 'group-hover:text-rose-500 dark:group-hover:text-rose-400',
       description: 'Triggers that execute script containers when events occur in the Minecraft world or Bukkit/Paper engine.',
     },
@@ -119,9 +119,9 @@ export default async function HomePage() {
       count: Object.keys(docs.languages).length,
       icon: Globe,
       color: 'blue',
-      iconBoxStyle: 'bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/25',
-      badgeStyle: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
-      hoverBorder: 'hover:border-blue-500/50 hover:shadow-[0_8px_30px_rgba(59,130,246,0.12)]',
+      iconBoxStyle: 'bg-blue-500/10 text-blue-500 dark:text-blue-400 group-hover:bg-blue-500/[0.16]',
+      badgeStyle: 'text-blue-600 dark:text-blue-400 bg-blue-500/10',
+      hoverBorder: 'hover:border-blue-500/35 hover:shadow-[0_12px_32px_-14px_rgba(59,130,246,0.38)] focus-visible:border-blue-500/60',
       hoverText: 'group-hover:text-blue-500 dark:group-hover:text-blue-400',
       description: 'Script file formatting specifications, language container definitions, and meta documentation guides.',
     },
@@ -132,9 +132,9 @@ export default async function HomePage() {
       count: Object.keys(docs.actions).length,
       icon: Bot,
       color: 'teal',
-      iconBoxStyle: 'bg-teal-500/10 text-teal-500 dark:text-teal-400 border-teal-500/25',
-      badgeStyle: 'text-teal-600 dark:text-teal-400 bg-teal-500/10 border-teal-500/20',
-      hoverBorder: 'hover:border-teal-500/50 hover:shadow-[0_8px_30px_rgba(20,184,166,0.12)]',
+      iconBoxStyle: 'bg-teal-500/10 text-teal-500 dark:text-teal-400 group-hover:bg-teal-500/[0.16]',
+      badgeStyle: 'text-teal-600 dark:text-teal-400 bg-teal-500/10',
+      hoverBorder: 'hover:border-teal-500/35 hover:shadow-[0_12px_32px_-14px_rgba(20,184,166,0.38)] focus-visible:border-teal-500/60',
       hoverText: 'group-hover:text-teal-500 dark:group-hover:text-teal-400',
       description: 'Context triggers for Citizens NPCs firing on player clicks, damage, movement, and navigation.',
     },
@@ -188,18 +188,18 @@ export default async function HomePage() {
               <Link
                 key={cat.href}
                 href={cat.href}
-                className={`group relative p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] ${cat.hoverBorder} shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between no-underline hover:no-underline`}
+                className={`home-tile group relative p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] ${cat.hoverBorder} shadow-[var(--card-shadow)] transition-[border-color,box-shadow] duration-200 flex flex-col justify-between no-underline hover:no-underline`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
-                    <div className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center ${cat.iconBoxStyle} shadow-2xs transition-transform duration-200 origin-center group-hover:scale-105`}>
+                    <div className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center ${cat.iconBoxStyle} transition-colors duration-200`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border inline-flex items-center justify-center leading-none ${cat.badgeStyle}`}>
+                      <span className={`text-[10px] font-bold font-mono px-1.5 py-1 rounded-md inline-flex items-center justify-center leading-none ${cat.badgeStyle}`}>
                         {cat.tag}
                       </span>
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-[var(--code-bg)] text-[var(--text-page)] border border-[var(--table-border)] inline-flex items-center justify-center leading-none">
+                      <span className="font-mono text-xs font-bold px-2 py-[3px] rounded-md bg-[var(--code-bg)] text-[var(--text-page)] inline-flex items-center justify-center leading-none">
                         {cat.count.toLocaleString()}
                       </span>
                     </div>
@@ -233,11 +233,11 @@ export default async function HomePage() {
             href="https://guide.denizenscript.com/"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[var(--accent-border)] shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline"
+            className="home-tile p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[var(--accent-border)] shadow-[var(--card-shadow)] transition-[border-color,box-shadow] duration-200 flex flex-col justify-between group no-underline hover:no-underline"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)] border border-[var(--accent-border)] flex items-center justify-center shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-primary)] flex items-center justify-center">
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <ExternalLink className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors" />
@@ -260,11 +260,11 @@ export default async function HomePage() {
             href="https://discord.gg/F2nftfP3nq"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[#5865F2]/50 shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline"
+            className="home-tile p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[#5865F2]/35 shadow-[var(--card-shadow)] transition-[border-color,box-shadow] duration-200 flex flex-col justify-between group no-underline hover:no-underline"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#5865F2]/10 text-[#5865F2] border border-[#5865F2]/25 flex items-center justify-center shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-[#5865F2]/10 text-[#5865F2] group-hover:bg-[#5865F2]/[0.16] transition-colors duration-200 flex items-center justify-center">
                   <DiscordIcon className="w-5 h-5" />
                 </div>
                 <ExternalLink className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[#5865F2] transition-colors" />
@@ -287,11 +287,11 @@ export default async function HomePage() {
             href="https://github.com/Energobro/DenizenM-Tjtoxshpilivili1"
             target="_blank"
             rel="noreferrer"
-            className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[var(--table-border-hover)] shadow-[var(--card-shadow)] transition-all duration-200 flex flex-col justify-between group no-underline hover:no-underline"
+            className="home-tile p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-[var(--table-border)] hover:border-[var(--table-border-hover)] shadow-[var(--card-shadow)] transition-[border-color,box-shadow] duration-200 flex flex-col justify-between group no-underline hover:no-underline"
           >
             <div>
               <div className="flex items-center justify-between mb-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[var(--code-bg)] text-[var(--text-page)] border border-[var(--table-border)] flex items-center justify-center shadow-2xs">
+                <div className="w-10 h-10 rounded-xl bg-[var(--code-bg)] text-[var(--text-page)] flex items-center justify-center">
                   <GithubIcon className="w-5 h-5" />
                 </div>
                 <ExternalLink className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-page)] transition-colors" />

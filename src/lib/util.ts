@@ -1,3 +1,5 @@
+import { fixKeyboardLayout } from "./keyboard-layout";
+
 export const HEADER_LINE = "DenizenM Meta Documentation";
 
 export function escapeForHTML(text: string): string {
@@ -60,9 +62,12 @@ export function cleanTag(text: string): string {
 
 export function fixID(id: string | null | undefined): string | null {
   if (!id) return null;
+  let decoded: string;
   try {
-    return decodeURIComponent(id).toLowerCase().replace(/\+/g, " ").replace(/%2f/gi, "/");
+    decoded = decodeURIComponent(id);
   } catch {
-    return id.toLowerCase().replace(/\+/g, " ").replace(/%2f/gi, "/");
+    decoded = id;
   }
+  // Typed with the Russian layout by mistake ("ыше" -> "sit"): the meta has no Cyrillic text to match.
+  return fixKeyboardLayout(decoded).toLowerCase().replace(/\+/g, " ").replace(/%2f/gi, "/");
 }

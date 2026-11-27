@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
+import { fixInputLayout } from '@/lib/keyboard-layout';
 
 interface DocSearchBarProps {
   basePath: string;
@@ -104,7 +105,7 @@ export function DocSearchBar({ basePath, placeholder, initialValue }: DocSearchB
           autoCapitalize="off"
           spellCheck={false}
           onChange={(e) => {
-            setFilterValue(e.target.value);
+            setFilterValue(fixInputLayout(e.target));
             setIsOpen(true);
             setActiveIndex(-1);
           }}

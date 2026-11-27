@@ -841,16 +841,26 @@ a.group, a.group *, a.group:hover, a.group:hover * {
   background-color: var(--code-bg);
   border: 1px solid var(--table-border);
   text-decoration: none !important;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
   line-height: 1.35;
 }
 
-.categories_container a:hover,
-.category_chip:hover {
+/* Hover only where there is a real pointer: on touch screens :hover sticks after a tap and left the chip lit up.
+   No lift on hover either: the 1px translate made the chip text and border shimmer. */
+@media (hover: hover) {
+  .categories_container a:hover,
+  .category_chip:hover {
+    background-color: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--accent-primary);
+  }
+}
+
+.categories_container a:active,
+.category_chip:active {
   background-color: var(--accent-soft);
   border-color: var(--accent-border);
   color: var(--accent-primary);
-  transform: translateY(-1px);
 }
 
 .category_divider {
@@ -981,6 +991,24 @@ html.theme-graphite, html.theme-graphite body {
   outline: none;
 }
 
+/* No grey/blue tap flash over rounded tiles on phones; tiles show their own pressed/hover state. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keyboard focus: one accent ring that follows each element's own corner radius (instead of the browser's
+   default ring, which looked off on the rounded tiles and chips). */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+.home-tile:focus-visible {
+  outline-offset: 3px;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -999,6 +1027,20 @@ html.theme-graphite, html.theme-graphite body {
 /* ============================================================
    Navbar Navigation Tabs
    ============================================================ */
+.nav-search-kbd {
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  background-color: var(--code-bg);
+  border: 1px solid var(--table-border);
+}
+
 .nav-tab-link {
   border: 1px solid transparent;
 }

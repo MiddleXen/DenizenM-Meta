@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, ArrowRight, X, Clock, Trash2 } from 'lucide-react';
 import { useSearchContext } from './SearchContext';
+import { fixInputLayout } from '@/lib/keyboard-layout';
 import { SearchAutocomplete, preloadSuggestions } from './SearchAutocomplete';
 
 const RECENT_KEY = 'denizen_recent_searches';
@@ -66,7 +67,7 @@ export function HomeSearch() {
   // Global hotkey Ctrl+K / Cmd+K or / on the Home page
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'k' || e.code === 'KeyK')) {
         e.preventDefault();
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -129,7 +130,7 @@ export function HomeSearch() {
               autoCapitalize="off"
               spellCheck={false}
               onChange={(e) => {
-                setSearchValue(e.target.value);
+                setSearchValue(fixInputLayout(e.target));
                 setIsOpen(true);
                 setActiveIndex(-1);
               }}

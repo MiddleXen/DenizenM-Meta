@@ -4,6 +4,10 @@ name: Auto Deploy
 # Every run only asks GitHub for the latest commit of each source branch (git ls-remote, a few seconds);
 # the Vercel deploy hook is called only when that set of commits differs from the last one deployed.
 # Pushes to this repository are deployed by Vercel's Git integration as usual.
+#
+# This is only the fallback: GitHub runs `schedule:` far less often than asked on a quiet repository (in practice
+# every few hours). The fast path is an external cron pinging /api/check-update every few minutes, or a push webhook
+# from the source repository to /Webhook/Reload; both redeploy only on a real change.
 
 on:
   schedule:
