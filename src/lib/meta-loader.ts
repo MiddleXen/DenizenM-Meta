@@ -1100,7 +1100,11 @@ export async function loadAllMetaDocs(sources: string[] = DEFAULT_SOURCES, force
         html += tableLine('primary', 'Name', `<a id="${aID}" href="${aHref}" data-copy-text="${escapeHtmlAttr('- ' + cmd.name)}" class="doc-anchor-link"><span class="doc_name">${escapeForHTML(cmd.name)}</span></a>`, false);
         html += tableLine('default', 'Async Status', `${asyncInfo.badgeHtml} <span class="badge-async-desc">${escapeForHTML(asyncInfo.descriptionText)}</span>`, false);
         if (cmd.guide) {
-          html += tableLine('default', 'Related Guide Page', `<a href="${escapeHtmlAttr(cmd.guide)}" target="_blank" rel="noopener noreferrer">${escapeForHTML(cmd.guide)}</a>`, false);
+          // Only web links become clickable: a `javascript:` URL in a source comment must never run on the site.
+          const guideHtml = /^https?:\/\//i.test(cmd.guide)
+            ? `<a href="${escapeHtmlAttr(cmd.guide)}" target="_blank" rel="noopener noreferrer">${escapeForHTML(cmd.guide)}</a>`
+            : escapeForHTML(cmd.guide);
+          html += tableLine('default', 'Related Guide Page', guideHtml, false);
         }
         html += tableLine('default', 'Syntax', htmlizeSyntax(cmd.syntax), false);
         html += tableLine('default', 'Short Description', cmd.short, true);

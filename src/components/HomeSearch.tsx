@@ -139,7 +139,7 @@ export function HomeSearch() {
                 if (searchValue.trim()) setIsOpen(true);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Search commands, tags, mechanisms, events..."
+              placeholder="Search commands, tags, events..."
               className="flex-1 min-w-0 pl-3 pr-2 py-3.5 sm:py-4 rounded-2xl bg-transparent text-[var(--text-page)] placeholder-[var(--text-muted)] text-base focus:outline-none"
             />
 
@@ -161,10 +161,11 @@ export function HomeSearch() {
 
               <button
                 type="submit"
-                className="btn-accent h-9 sm:h-9.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
+                aria-label="Search"
+                className="btn-accent h-9 sm:h-9.5 w-9 sm:w-auto px-0 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold shadow-sm inline-flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer leading-none"
               >
-                <span className="leading-none select-none -translate-y-[0.5px]">Search</span>
-                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline leading-none select-none -translate-y-[0.5px]">Search</span>
+                <ArrowRight className="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
               </button>
             </div>
           </div>
