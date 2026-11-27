@@ -41,8 +41,6 @@ export function Navbar() {
   // 1024-1279px: the search field is narrower there so the full nav fits; it widens over the nav while in use.
   const [searchFocused, setSearchFocused] = useState(false);
   const searchExpanded = searchFocused || (isSearchOpen && searchValue.trim().length > 0);
-  // Ctrl+K targets this field everywhere but Home, where it focuses the big hero search instead.
-  const showKbd = !searchFocused && pathname !== '/';
 
   const headerRef = useRef<HTMLElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
@@ -311,7 +309,7 @@ export function Navbar() {
               ref={searchContainerRef}
             >
               <div
-                className={`@container relative lg:max-xl:absolute lg:max-xl:right-0 lg:max-xl:top-0 lg:max-xl:transition-[width] lg:max-xl:duration-200 lg:max-xl:ease-out ${
+                className={`relative lg:max-xl:absolute lg:max-xl:right-0 lg:max-xl:top-0 lg:max-xl:transition-[width] lg:max-xl:duration-200 lg:max-xl:ease-out ${
                   searchExpanded ? 'lg:max-xl:w-[20rem] lg:max-xl:shadow-[-18px_0_14px_-6px_var(--bg-page)]' : 'lg:max-xl:w-full'
                 }`}
               >
@@ -337,9 +335,9 @@ export function Navbar() {
                   }}
                   onBlur={() => setSearchFocused(false)}
                   onKeyDown={handleSearchKeyDown}
-                  className={`w-full pl-8.5 ${searchValue ? 'pr-8' : showKbd ? 'pr-2 @[15rem]:pr-14' : 'pr-2'} py-1.5 rounded-lg text-xs bg-[var(--input-bg)] border border-[var(--table-border)] text-[var(--text-page)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-colors text-ellipsis`}
+                  className={`w-full pl-8.5 ${searchValue ? 'pr-8' : 'pr-2'} py-1.5 rounded-lg text-xs bg-[var(--input-bg)] border border-[var(--table-border)] text-[var(--text-page)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-colors text-ellipsis`}
                 />
-                {searchValue ? (
+                {searchValue && (
                   <button
                     type="button"
                     onClick={() => {
@@ -352,12 +350,6 @@ export function Navbar() {
                   >
                     <X className="w-3 h-3" />
                   </button>
-                ) : (
-                  showKbd && (
-                    <kbd className="nav-search-kbd hidden @[15rem]:inline-flex absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                      Ctrl K
-                    </kbd>
-                  )
                 )}
 
                 <SearchAutocomplete

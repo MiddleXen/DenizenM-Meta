@@ -1027,19 +1027,6 @@ summary:focus-visible,
 /* ============================================================
    Navbar Navigation Tabs
    ============================================================ */
-.nav-search-kbd {
-  align-items: center;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 5px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--text-muted);
-  background-color: var(--code-bg);
-  border: 1px solid var(--table-border);
-}
 
 .nav-tab-link {
   border: 1px solid transparent;
