@@ -240,8 +240,7 @@ const UNVERIFIED = (descriptionText: string): TagAsyncInfo => ({
 });
 
 const UNVERIFIED_TAG = UNVERIFIED(
-  `The addon marks nothing about threads, so DenizenM runs this directly on the async queue's thread, with no main-thread hand-off. ` +
-    `Fine for plain data; if it reads live plugin or world state it can race the main thread - read it into a definition before the async part if that matters.`
+  `Not marked by the addon: runs directly on the async thread. May be unsafe if it reads live plugin data.`
 );
 
 const MAIN_DEFAULT = MAIN(
@@ -374,7 +373,7 @@ export function getObjectTypeAsyncStatus(cleanTypeName: string, sourceFile?: str
       isUnverified: true,
       safeCount: 0,
       badgeHtml: makeUnverifiedBadge(UNVERIFIED_BADGE),
-      descriptionText: `Not marked by DenizenM, so its tags run directly on the async queue's thread with no main-thread hand-off. The addon does not declare whether that is safe.`,
+      descriptionText: `Not marked by the addon: its tags run directly on the async thread. Safety is not declared.`,
     };
   }
 
