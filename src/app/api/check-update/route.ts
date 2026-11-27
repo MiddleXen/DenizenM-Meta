@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Changelog } from '@/lib/changelog-types';
 
@@ -11,9 +12,24 @@ export const dynamic = 'force-dynamic';
  * a free external cron (e.g. cron-job.org, every 5 minutes): GitHub's own `schedule:` trigger runs only every few
  * hours on a quiet repository, so .github/workflows/sync.yml stays only as a fallback.
  *
- * Needs no token: it never deploys unless a source really changed, and repeated pings while that new build is
- * still running are held back by the cool-downs below.
+ * Requires the RELOAD_WEBHOOK_TOKEN secret (`Authorization: Bearer <secret>` or `X-Webhook-Token: <secret>`), so
+ * strangers cannot make it hit GitHub or pile up builds; without that env var the endpoint is off. Even with the
+ * secret it deploys only when a source really changed, and the cool-downs below hold back repeated pings while that
+ * new build is still running.
  */
+
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'utf8');
+  const bb = Buffer.from(b, 'utf8');
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
+
+function isAuthorized(req: NextRequest, secret: string): boolean {
+  const auth = req.headers.get('authorization');
+  if (auth && auth.toLowerCase().startsWith('bearer ') && safeEqual(auth.slice(7).trim(), secret)) return true;
+  const token = req.headers.get('x-webhook-token');
+  return Boolean(token && safeEqual(token.trim(), secret));
+}
 
 /** No second deploy for the same set of source heads within this time (covers the build of the first one). */
 const SAME_STATE_COOLDOWN_MS = 60 * 60 * 1000;
@@ -42,6 +58,14 @@ async function branchHead(repo: string, branch: string): Promise<string | null> 
 
 export async function GET(req: NextRequest) {
   const noStore = { 'Cache-Control': 'no-store' };
+
+  const secret = process.env.RELOAD_WEBHOOK_TOKEN;
+  if (!secret) {
+    return NextResponse.json({ ok: false, error: 'Not configured.' }, { status: 404, headers: noStore });
+  }
+  if (!isAuthorized(req, secret)) {
+    return NextResponse.json({ ok: false, error: 'Invalid token.' }, { status: 401, headers: noStore });
+  }
 
   let changelog: Changelog;
   try {

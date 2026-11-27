@@ -6,8 +6,9 @@ name: Auto Deploy
 # Pushes to this repository are deployed by Vercel's Git integration as usual.
 #
 # This is only the fallback: GitHub runs `schedule:` far less often than asked on a quiet repository (in practice
-# every few hours). The fast path is an external cron pinging /api/check-update every few minutes, or a push webhook
-# from the source repository to /Webhook/Reload; both redeploy only on a real change.
+# every few hours). The fast path is a push webhook from the source repository to /Webhook/Reload, or an external
+# cron pinging /api/check-update (with the RELOAD_WEBHOOK_TOKEN secret in a header) every few minutes; both redeploy only on a
+# real change.
 
 on:
   schedule:
