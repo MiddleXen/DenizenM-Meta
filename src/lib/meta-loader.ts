@@ -238,8 +238,9 @@ function examplifyTag(tag: string, returns: string, returnType?: MetaObjectTypeO
       return `- narrate "the decimal value is ${tag}"`;
   }
   if (returnType && returnType.generatedReturnUsageExample && returnType.generatedReturnUsageExample.length > 0) {
-    const chosen = returnType.generatedReturnUsageExample[Math.floor(rng() * returnType.generatedReturnUsageExample.length)];
-    return chosen.replace(/%VALUE%/g, tag);
+    // Always the first @ExampleForReturns: authors list the main use first (EntityTag: "- kill"), while later ones can be
+    // wrong for the generated value (EntityTag's "- remove" on a <player>). The original meta site picks one at random.
+    return returnType.generatedReturnUsageExample[0].replace(/%VALUE%/g, tag);
   }
   return `- narrate ${tag}`;
 }
